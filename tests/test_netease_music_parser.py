@@ -46,7 +46,7 @@ class NeteaseMusicParserTest(unittest.TestCase):
         )
         self.assertEqual(parser.get_title_content(), "透明爱人")
         self.assertEqual(parser.get_author_info()["nickname"], "白鹿")
-        self.assertEqual(parser.get_real_video_url(), "http://vod.126.net/1080.mp4")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(len(parser.get_video_list()), 3)
 
     @patch("src.parsers.base_parser.requests.Session.get")
@@ -77,7 +77,7 @@ class NeteaseMusicParserTest(unittest.TestCase):
         )
         self.assertEqual(parser.get_title_content(), "动态视频")
         self.assertEqual(parser.get_author_info()["author_id"], "123")
-        self.assertEqual(parser.get_real_video_url(), "http://vod.126.net/1080.mp4")
+        self.assertIsNone(parser.get_real_video_url())
 
     @patch("src.parsers.base_parser.requests.Session.get")
     def test_parses_event_images_livephotos_and_free_song(self, get):

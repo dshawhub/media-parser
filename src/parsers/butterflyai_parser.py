@@ -21,6 +21,7 @@ class ButterflyAIParser(BaseParser):
             "Accept": "application/json, text/plain, */*",
         }
         self.title = ""
+        self.description = None
         self.cover_url = None
         self.video_url = None
         self.image_list = []
@@ -85,13 +86,8 @@ class ButterflyAIParser(BaseParser):
         creator = share_record.get("creator") or {}
 
         # 提取标题与生成 Prompt
-        self.title = (
-            artwork.get("title")
-            or artwork.get("description")
-            or share_record.get("prompt")
-            or share_record.get("show_info", {}).get("effect_title")
-            or ""
-        ).strip()
+        self.title = (artwork.get("title") or share_record.get("show_info", {}).get("effect_title") or "").strip()
+        self.description = (artwork.get("description") or share_record.get("prompt") or "").strip() or None
         if not self.title and share_record.get("effect_list"):
             first_eff = share_record["effect_list"][0]
             self.title = (
@@ -144,14 +140,14 @@ class ButterflyAIParser(BaseParser):
         self.cover_url = artwork.get("cover_image_url") or artwork.get("cover_url")
         if not self.cover_url and rendering_video:
             self.cover_url = rendering_video.get("cover_image_url")
-        if not self.cover_url and self.image_list:
-            self.cover_url = self.image_list[0]
-
     def get_real_video_url(self):
         return self.video_url
 
     def get_title_content(self):
         return self.title or ""
+
+    def get_description(self):
+        return self.description
 
     def get_cover_photo_url(self):
         return self.cover_url

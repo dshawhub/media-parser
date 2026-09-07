@@ -950,10 +950,7 @@ class DouyinParser(BaseParser):
                 ep_info = data_dict.get('episode_info') or (data_dict.get('lvideo_detail') or {}).get('episode_info') or {}
                 if not ep_info and data_dict.get('episode_list'):
                     ep_info = data_dict['episode_list'][0]
-                ep_title = ep_info.get('episode_name') or ep_info.get('title') or ep_info.get('desc') or ''
-
-                if not album_title and not ep_title and data_dict.get('aweme_detail'):
-                    ep_title = data_dict['aweme_detail'].get('desc', '') or data_dict['aweme_detail'].get('itemTitle', '')
+                ep_title = ep_info.get('episode_name') or ep_info.get('title') or ''
 
                 if album_title and ep_title and album_title != ep_title:
                     return f"【放映厅】{album_title} - {ep_title}"
@@ -964,10 +961,23 @@ class DouyinParser(BaseParser):
 
             if not data_dict.get('aweme_detail'):
                 return None
-            title_content = data_dict['aweme_detail'].get('desc', '')
-            return title_content
+            aweme = data_dict['aweme_detail']
+            title = aweme.get('itemTitle') or None
+            desc = aweme.get('desc') or None
+            # itemTitle 与 desc 相同通常只是接口冗余字段，不将文案伪装成标题。
+            if title and desc and title.strip() == desc.strip():
+                return None
+            return title
         except (KeyError, json.JSONDecodeError, TypeError) as e:
             logger.warning(f"Failed to parse title content: {e}")
+            return None
+
+    def get_description(self):
+        """返回抖音原始作品文案，不用标题字段回填。"""
+        try:
+            return (self.data.get('aweme_detail') or {}).get('desc') or None
+        except (AttributeError, TypeError) as e:
+            logger.warning(f"Failed to parse Douyin description: {e}")
             return None
 
     def get_cover_photo_url(self):
@@ -1208,4 +1218,3 @@ class DouyinParser(BaseParser):
         except Exception as e:
             logger.warning(f"Failed to parse image list: {e}")
             return []
-

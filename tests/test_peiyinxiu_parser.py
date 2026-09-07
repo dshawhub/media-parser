@@ -23,7 +23,7 @@ class PeiyinxiuParserTest(unittest.TestCase):
         self.assertEqual(parser.get_title_content(), "七夕节你怎么过？")
         self.assertEqual(parser.get_author_info(), {"nickname": "DY_苏苏", "author_id": "186214518", "avatar": "https://img7.peiyinxiu.com/avatar/test.jpg"})
         self.assertEqual(parser.get_cover_photo_url(), "https://img7.peiyinxiu.com/test.jpg")
-        self.assertEqual(parser.get_real_video_url(), "https://video7.peiyinxiu.com/download/test.mp4")
+        self.assertIsNone(parser.get_real_video_url())
 
     @patch("src.parsers.base_parser.requests.Session.get")
     def test_handles_missing_media(self, get):

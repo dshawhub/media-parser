@@ -53,7 +53,7 @@ class XinpianchangParserTest(unittest.TestCase):
 
         self.assertEqual(parser.get_title_content(), "治愈系风景 | 阿尔卑斯徒步")
         self.assertEqual(parser.get_cover_photo_url(), "https://oss-xpc0.xpccdn.com/cover.jpg")
-        self.assertEqual(parser.get_real_video_url(), "https://us-xpc5.xpccdn.com/720p.mp4")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(
             parser.get_video_list(),
             ["https://us-xpc5.xpccdn.com/720p.mp4", "https://us-xpc5.xpccdn.com/360p.mp4"],

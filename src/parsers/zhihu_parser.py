@@ -120,16 +120,18 @@ class ZhihuParser(BaseParser):
 
     def get_title_content(self):
         question = self.data.get("question") or {}
-        title = question.get("title") or self.data.get("title") or self.data.get("excerpt_title") or ""
+        return question.get("title") or self.data.get("title") or self.data.get("excerpt_title") or None
+
+    def get_description(self):
         excerpt = self.data.get("excerpt") or ""
-        if title or excerpt:
-            return "\n".join(part for part in (title, excerpt) if part).strip()
+        if excerpt:
+            return excerpt
         content_html = self.data.get("content_html") or self.data.get("content") or ""
         if isinstance(content_html, str):
             text = BeautifulSoup(content_html, "html.parser").get_text(" ", strip=True)
             if text:
                 return text
-        return "知乎视频" if self._pin_video() else "知乎内容"
+        return None
 
     def get_cover_photo_url(self):
         pin_video = self._pin_video()

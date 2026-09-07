@@ -21,6 +21,7 @@ class DewuParser(BaseParser):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
         self.title = ""
+        self.description = None
         self.cover_url = None
         self.video_url = None
         self.image_list = []
@@ -53,7 +54,8 @@ class DewuParser(BaseParser):
             user_data = target_data.get("userInfo", {}) or {}
 
             # 提取标题与文案
-            self.title = (content_data.get("title") or content_data.get("content") or "").strip()
+            self.title = (content_data.get("title") or "").strip()
+            self.description = (content_data.get("content") or "").strip() or None
 
             # 提取封面
             cover_info = content_data.get("cover") or {}
@@ -118,6 +120,9 @@ class DewuParser(BaseParser):
 
     def get_title_content(self):
         return self.title or ""
+
+    def get_description(self):
+        return self.description
 
     def get_cover_photo_url(self):
         return self.cover_url

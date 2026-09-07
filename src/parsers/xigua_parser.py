@@ -107,9 +107,14 @@ class XiguaParser(DouyinParser):
     def get_title_content(self):
         if self.data and isinstance(self.data, dict) and "xigua_article_info" in self.data:
             article_info = self.data["xigua_article_info"]
-            return article_info.get("title") or article_info.get("content") or ""
+            return article_info.get("title") or None
 
         return super().get_title_content()
+
+    def get_description(self):
+        if self.data and isinstance(self.data, dict) and "xigua_article_info" in self.data:
+            return self.data["xigua_article_info"].get("content") or None
+        return super().get_description()
 
     def get_cover_photo_url(self):
         if self.data and isinstance(self.data, dict) and "xigua_article_info" in self.data:

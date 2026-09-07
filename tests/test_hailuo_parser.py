@@ -49,7 +49,8 @@ class HailuoParserTest(unittest.TestCase):
         with patch("requests.Session.get", return_value=response) as get:
             parser = HailuoParser("https://hailuoai.com/share/ai-video/enbrdg0JlAen?source-scene=shared")
 
-        self.assertEqual(parser.get_title_content(), "第一秒的时候轻微点头，第二秒连续摇头")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "第一秒的时候轻微点头，第二秒连续摇头")
         # 优先选用去品牌水印的 downloadURLWithAIWatermark
         self.assertEqual(parser.get_real_video_url(), "https://cdn.hailuoai.com/clean_ai.mp4")
         self.assertEqual(parser.get_cover_photo_url(), "https://cdn.hailuoai.com/cover.jpg")
@@ -86,7 +87,8 @@ class HailuoParserTest(unittest.TestCase):
         with patch("requests.Session.get", return_value=response):
             parser = HailuoParser("https://hailuoai.com/share/ai-video/test123")
 
-        self.assertEqual(parser.get_title_content(), "这是详细描述")
+        self.assertEqual(parser.get_title_content(), "海螺视频测试标题")
+        self.assertEqual(parser.get_description(), "这是详细描述")
         self.assertEqual(parser.get_real_video_url(), "https://cdn.hailuoai.com/ld_video.mp4")
         self.assertEqual(parser.get_cover_photo_url(), "https://cdn.hailuoai.com/ld_thumb.jpg")
         self.assertEqual(parser.get_author_info()["nickname"], "创作者小明")
@@ -99,7 +101,8 @@ class HailuoParserTest(unittest.TestCase):
             parser = HailuoParser("https://hailuoai.com/share/ai-video/invalid")
 
         self.assertIsNone(parser.get_real_video_url())
-        self.assertEqual(parser.get_title_content(), "海螺AI 作品")
+        self.assertIsNone(parser.get_title_content())
+        self.assertIsNone(parser.get_description())
         self.assertIsNone(parser.get_cover_photo_url())
         self.assertIsNone(parser.get_author_info())
         self.assertEqual(parser.get_image_list(), [])

@@ -57,7 +57,8 @@ class WeiboParserTest(unittest.TestCase):
             parser.get_image_list(),
             ["https://wx1.sinaimg.cn/large/pic1.jpg", "https://wx2.sinaimg.cn/large/pic2.jpg"]
         )
-        self.assertEqual(parser.get_title_content(), "图文微博测试")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "图文微博测试")
         self.assertEqual(parser.get_author_info()["nickname"], "博主昵称")
 
     def test_video_component_fields(self):
@@ -77,4 +78,3 @@ class WeiboParserTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

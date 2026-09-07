@@ -158,10 +158,6 @@ class NeteaseMusicParser(BaseParser):
         song = content.get("song") or {}
         self.title = content.get("title") or content.get("msg") or song.get("name") or ""
         self.image_list = self._extract_event_images(payload.get("pics") or [])
-        if self.image_list:
-            first = self.image_list[0]
-            self.cover_url = first.get("url") if isinstance(first, dict) else first
-
         video_data = content.get("videoData") or {}
         self.video_list = self._extract_nested_video_urls(video_data)
         if song.get("id"):
@@ -338,7 +334,7 @@ class NeteaseMusicParser(BaseParser):
         return list(dict.fromkeys(value for value in values if value))
 
     def get_real_video_url(self):
-        return self.video_list[0] if self.video_list else None
+        return None
 
     def get_video_list(self):
         return self.video_list

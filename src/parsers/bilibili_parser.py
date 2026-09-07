@@ -194,19 +194,25 @@ class BilibiliParser(BaseParser):
 
     def get_title_content(self):
         if self.video_info:
-            return self.video_info.get("title", "")
+            return self.video_info.get("title") or None
         if self.dynamic_info:
             modules = self.dynamic_info.get("modules", {})
             dynamic_mod = modules.get("module_dynamic", {})
             major = dynamic_mod.get("major", {})
             if opus := major.get("opus"):
-                if title := opus.get("title"):
-                    return title
-                if summary := opus.get("summary", {}).get("text"):
-                    return summary
-            if desc := dynamic_mod.get("desc", {}).get("text"):
-                return desc
-        return ""
+                return opus.get("title") or None
+        return None
+
+    def get_description(self):
+        if self.video_info:
+            return self.video_info.get("desc") or None
+        if self.dynamic_info:
+            dynamic_mod = self.dynamic_info.get("modules", {}).get("module_dynamic", {})
+            major = dynamic_mod.get("major", {})
+            if opus := major.get("opus"):
+                return opus.get("summary", {}).get("text") or dynamic_mod.get("desc", {}).get("text") or None
+            return dynamic_mod.get("desc", {}).get("text") or None
+        return None
 
     def get_cover_photo_url(self):
         if self.video_info:

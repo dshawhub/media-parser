@@ -31,7 +31,8 @@ class ZuiyouParserTest(unittest.TestCase):
             json={"h_av": "5.2.13.011", "pid": 123},
             timeout=10,
         )
-        self.assertEqual(parser.get_title_content(), "测试最右作品")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "测试最右作品")
         self.assertEqual(
             parser.get_author_info(),
             {"nickname": "测试作者", "author_id": "42", "avatar": "https://image.example.com/avatar.jpg"},

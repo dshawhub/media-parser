@@ -95,7 +95,10 @@ class SoulParser(BaseParser):
         return self._normalize_url(self._get_primary_video().get("fileUrl"))
 
     def get_title_content(self):
-        return self.post.get("content") or "Soul 帖子"
+        return self.post.get("title") or None
+
+    def get_description(self):
+        return self.post.get("content") or None
 
     def get_cover_photo_url(self):
         attachment = self._get_primary_video()

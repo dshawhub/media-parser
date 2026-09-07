@@ -101,7 +101,8 @@ class JimengParser(BaseParser):
 
         author_id = author.get("uid") or author.get("sec_uid") or ""
         return {
-            "title": common.get("description") or "即梦AI 视频",
+            "title": common.get("title") or None,
+            "desc": common.get("description") or None,
             "video_url": primary_video,
             "video_list": [primary_video] if primary_video else [],
             "cover_url": cover_url,
@@ -149,7 +150,10 @@ class JimengParser(BaseParser):
         return self.data.get("video_list") or []
 
     def get_title_content(self):
-        return self.data.get("title") or ""
+        return self.data.get("title") or None
+
+    def get_description(self):
+        return self.data.get("desc") or None
 
     def get_cover_photo_url(self):
         return self.data.get("cover_url")

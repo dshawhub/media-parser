@@ -114,12 +114,7 @@ class QianwenParser(BaseParser):
                 img_urls.extend(deep_images)
 
             self.image_list = list(dict.fromkeys(img_urls))
-            if self.image_list:
-                self.cover_url = self.image_list[0]
-
             self.video_list = list(dict.fromkeys(video_urls))
-            if self.video_list:
-                self.video_url = self.video_list[0]
 
         except Exception as exc:
             logger.warning("Failed to parse Qianwen share page: %s", exc)

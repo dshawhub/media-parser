@@ -8,6 +8,9 @@ class BaseParserTest(unittest.TestCase):
     def test_default_subtitles_are_none(self):
         self.assertIsNone(BaseParser("https://example.com").get_subtitles())
 
+    def test_default_description_is_none(self):
+        self.assertIsNone(BaseParser("https://example.com").get_description())
+
     def test_parse_html_data_extracts_json_and_replaces_undefined(self):
         html = '<script>window.DATA = {"value": undefined};</script>'
         result = BaseParser.parse_html_data(

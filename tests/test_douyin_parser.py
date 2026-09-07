@@ -352,7 +352,8 @@ class DouyinParserTest(unittest.TestCase):
                     parser.html_content = html
                     parser.data = parser.fetch_html_data()
 
-        self.assertEqual(parser.get_title_content(), "SSR Universal 降级视频")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "SSR Universal 降级视频")
         self.assertEqual(parser.get_real_video_url(), "http://origin.douyin.com/ssr_universal.mp4")
 
     def test_ssr_fallback_render_data_when_api_fails(self):
@@ -381,7 +382,8 @@ class DouyinParserTest(unittest.TestCase):
                     parser.html_content = html
                     parser.data = parser.fetch_html_data()
 
-        self.assertEqual(parser.get_title_content(), "SSR RENDER_DATA 降级视频")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "SSR RENDER_DATA 降级视频")
         self.assertEqual(parser.get_real_video_url(), "http://origin.douyin.com/ssr_render.mp4")
 
     def test_ssr_fallback_router_data_regex_when_api_fails(self):
@@ -411,7 +413,8 @@ class DouyinParserTest(unittest.TestCase):
                     parser.html_content = html
                     parser.data = parser.fetch_html_data()
 
-        self.assertEqual(parser.get_title_content(), "SSR Router Data 正则降级视频")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "SSR Router Data 正则降级视频")
         self.assertEqual(parser.get_real_video_url(), "http://origin.douyin.com/ssr_router.mp4")
 
     def test_api_success_takes_precedence_over_ssr(self):

@@ -21,6 +21,7 @@ class LofterParser(BaseParser):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
         self.title = ""
+        self.description = None
         self.cover_url = None
         self.video_url = None
         self.image_list = []
@@ -87,8 +88,6 @@ class LofterParser(BaseParser):
                     img_url = img.get("orign") or img.get("raw")
                     if img_url:
                         self.image_list.append(img_url)
-            if self.image_list:
-                self.cover_url = self.image_list[0]
             return
 
         # 2. 标准博客文章详情 (postData)
@@ -130,16 +129,12 @@ class LofterParser(BaseParser):
             first_img = photo_post_view.get("firstImage") or post_view.get("firstImage")
             if isinstance(first_img, dict):
                 self.cover_url = first_img.get("raw") or first_img.get("orign")
-            elif not self.cover_url and self.image_list:
-                self.cover_url = self.image_list[0]
 
             if not caption:
                 caption = photo_post_view.get("caption") or ""
 
         # 标题整理
-        if not title and caption:
-            clean_caption = re.sub(r'<[^>]+>', '', caption).strip()
-            title = clean_caption
+        self.description = re.sub(r'<[^>]+>', '', caption).strip() or None
 
         self.title = title.strip()
 
@@ -171,14 +166,14 @@ class LofterParser(BaseParser):
                 if src and "lf127.net" in src and "ava" not in src:
                     self.image_list.append(src)
 
-        if not self.cover_url and self.image_list:
-            self.cover_url = self.image_list[0]
-
     def get_real_video_url(self):
         return self.video_url
 
     def get_title_content(self):
         return self.title or ""
+
+    def get_description(self):
+        return self.description
 
     def get_cover_photo_url(self):
         return self.cover_url

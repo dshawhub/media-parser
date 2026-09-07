@@ -27,6 +27,7 @@ class HailuoParser(BaseParser):
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
         }
         self.title = None
+        self.description = None
         self.cover_url = None
         self.video_url = None
         self.video_list = []
@@ -100,7 +101,8 @@ class HailuoParser(BaseParser):
 
     def _apply_video_asset(self, asset):
         # 1. 提取标题 / 描述
-        self.title = asset.get("title") or asset.get("desc") or "海螺AI 作品"
+        self.title = asset.get("title") or None
+        self.description = asset.get("desc") or None
 
         # 2. 提取视频直链（优先提取去除品牌大标的直链）
         video_urls_obj = asset.get("videoURLs") or {}
@@ -164,7 +166,8 @@ class HailuoParser(BaseParser):
         return None
 
     def _apply_ld_video(self, ld_video):
-        self.title = ld_video.get("description") or ld_video.get("name") or "海螺AI 作品"
+        self.title = ld_video.get("name") or None
+        self.description = ld_video.get("description") or None
         self.video_url = ld_video.get("contentUrl")
         if self.video_url:
             self.video_list = [self.video_url]
@@ -182,7 +185,10 @@ class HailuoParser(BaseParser):
         return self.video_url
 
     def get_title_content(self):
-        return self.title or "海螺AI 作品"
+        return self.title
+
+    def get_description(self):
+        return self.description
 
     def get_cover_photo_url(self):
         return self.cover_url

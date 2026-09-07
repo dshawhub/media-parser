@@ -73,7 +73,7 @@ class QQMusicParserTest(unittest.TestCase):
         self.assertEqual(parser.get_title_content(), "《Speed of Summer》WINTER Teaser")
         self.assertEqual(parser.get_cover_photo_url(), "http://img.tencentmusic.com/cover.jpg")
         self.assertEqual(parser.get_author_info()["nickname"], "普通搞笑人类")
-        self.assertEqual(parser.get_real_video_url(), "http://v0.stream.tencentmusic.com/1080.mp4")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(
             parser.get_video_list(),
             [

@@ -86,9 +86,6 @@ class PinduoduoParser(BaseParser):
             self._parse_goods_detail()
 
         # 4. 保障默认兜底字段
-        if self.image_list and not self.cover_url:
-            self.cover_url = self.image_list[0]
-
         if not self.title:
             if self.goods_id:
                 if self.review_id:

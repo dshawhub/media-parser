@@ -33,6 +33,7 @@ class ApiContractTest(unittest.TestCase):
     def parser(**overrides):
         values = {
             "title": "测试作品",
+            "desc": None,
             "video_url": "https://example.com/video.mp4",
             "video_list": [],
             "cover_url": "https://example.com/cover.jpg",
@@ -43,6 +44,7 @@ class ApiContractTest(unittest.TestCase):
         values.update(overrides)
         parser = Mock()
         parser.get_title_content.return_value = values["title"]
+        parser.get_description.return_value = values["desc"]
         parser.get_real_video_url.return_value = values["video_url"]
         parser.get_video_list.return_value = values["video_list"]
         parser.get_cover_photo_url.return_value = values["cover_url"]
@@ -144,12 +146,44 @@ class ApiContractTest(unittest.TestCase):
         self.assertEqual(data["image_list"][0], "https://cdn.example/image.jpg")
         self.assertEqual(data["image_list"][1]["live_photo_url"], "https://cdn.example/live.mp4")
 
+    def test_response_exposes_optional_description(self):
+        response = self.post_with_parser(self.parser(desc="这是作品正文"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["data"]["desc"], "这是作品正文")
+
+    def test_response_keeps_null_description_when_unsupported(self):
+        response = self.post_with_parser(self.parser())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.get_json()["data"]["desc"])
+
+    def test_response_uses_description_as_legacy_title_fallback(self):
+        response = self.post_with_parser(self.parser(title="同一段文案", desc="同一段文案"))
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()["data"]
+        self.assertEqual(data["title"], "同一段文案")
+        self.assertEqual(data["desc"], "同一段文案")
+
+        response = self.post_with_parser(self.parser(title=None, desc="只有正文"))
+        data = response.get_json()["data"]
+        self.assertEqual(data["title"], "只有正文")
+        self.assertEqual(data["desc"], "只有正文")
+
     def test_image_only_result_is_successful(self):
         response = self.post_with_parser(
-            self.parser(video_url=None, video_list=[], image_list=["https://example.com/1.jpg"])
+            self.parser(
+                video_url=None,
+                video_list=[],
+                cover_url=None,
+                image_list=["https://example.com/1.jpg"],
+            )
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.get_json()["data"]["video_url"])
+        data = response.get_json()["data"]
+        self.assertIsNone(data["video_url"])
+        self.assertEqual(data["cover_url"], "https://example.com/1.jpg")
 
     def test_unexpected_parser_error_uses_stable_500_contract(self):
         with patch("src.api.parse.WebFetcher.fetch_redirect_url", side_effect=RuntimeError("boom")):

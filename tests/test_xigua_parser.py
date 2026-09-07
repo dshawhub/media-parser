@@ -15,6 +15,7 @@ class XiguaParserTest(unittest.TestCase):
 
         sample_article_info = {
             "title": "测试西瓜视频",
+            "content": "西瓜视频正文",
             "posterUrl": "https://p3.ixigua.com/test_cover.jpg",
             "mediaUser": {
                 "screenName": "西瓜创作者",
@@ -52,6 +53,7 @@ class XiguaParserTest(unittest.TestCase):
             parser = XiguaParser("https://www.ixigua.com/7676450021063735414")
 
             self.assertEqual(parser.get_title_content(), "测试西瓜视频")
+            self.assertEqual(parser.get_description(), "西瓜视频正文")
             self.assertEqual(parser.get_cover_photo_url(), "https://p3.ixigua.com/test_cover.jpg")
             self.assertEqual(parser.get_author_info(), {
                 "author": "西瓜创作者",

@@ -85,7 +85,7 @@ class PeiyinxiuParser(BaseParser):
         return [url] if url else []
 
     def get_real_video_url(self):
-        return self.video_list[0] if self.video_list else None
+        return None
 
     def get_video_list(self):
         return self.video_list

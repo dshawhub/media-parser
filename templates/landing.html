@@ -88,6 +88,7 @@
                     </div>
                     <div>
                         <h3 id="resultTitle" class="text-base font-semibold leading-relaxed text-slate-900 break-words max-h-40 overflow-y-auto custom-scroll"></h3>
+                        <div id="resultDesc" class="hidden mt-3 border-l-2 border-indigo-200 pl-3 text-sm leading-6 text-slate-600 break-words whitespace-pre-wrap max-h-40 overflow-y-auto custom-scroll"><span class="mr-2 text-xs font-semibold text-slate-400">正文</span><span id="resultDescText"></span></div>
                     </div>
                 </div>
 
@@ -508,6 +509,10 @@
             lastParsedData = data;
             document.getElementById('resultPlatform').textContent = data.platform || '未知平台';
             document.getElementById('resultTitle').textContent = data.title || '未获取到标题';
+            const desc = typeof data.desc === 'string' ? data.desc.trim() : '';
+            document.getElementById('resultDescText').textContent = desc;
+            const title = typeof data.title === 'string' ? data.title.trim() : '';
+            document.getElementById('resultDesc').classList.toggle('hidden', !desc || desc === title);
             const author = data.author && (data.author.nickname || data.author.author_id);
             document.getElementById('resultAuthor').textContent = author ? `作者：${data.author.nickname || data.author.author_id}` : '';
 

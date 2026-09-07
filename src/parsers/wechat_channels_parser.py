@@ -164,7 +164,8 @@ class WeChatChannelsParser(BaseParser):
         audio_url = (feed.get("bgmInfo") or {}).get("bgmUrl")
 
         return {
-            "title": feed.get("description") or "视频号",
+            "title": feed.get("title") or None,
+            "desc": feed.get("description") or None,
             "video_url": video_url,
             "video_list": [video_url] if video_url else [],
             "cover_url": feed.get("coverUrl"),
@@ -185,6 +186,9 @@ class WeChatChannelsParser(BaseParser):
 
     def get_title_content(self):
         return self.data["title"]
+
+    def get_description(self):
+        return self.data.get("desc") or None
 
     def get_cover_photo_url(self):
         return self.data["cover_url"]

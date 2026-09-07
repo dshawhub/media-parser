@@ -188,7 +188,7 @@ class QQMusicParser(BaseParser):
         return list(dict.fromkeys(url for _, url in streams))
 
     def get_real_video_url(self):
-        return self.video_list[0] if self.video_list else None
+        return None
 
     def get_video_list(self):
         return self.video_list

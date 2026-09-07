@@ -75,11 +75,14 @@ class PipixiaParser(BaseParser):
         try: return self.data["data"]["cell_comments"][0]["comment_info"]["item"]["cover"]["url_list"][0]["url"]
         except: return None
     def get_title_content(self):
+        return self.page_title or None
+
+    def get_description(self):
         try:
             content = self.data["data"]["cell_comments"][0]["comment_info"]["item"].get("content", "")
-            return content or self.page_title
+            return content or None
         except (KeyError, TypeError, IndexError):
-            return self.page_title
+            return None
     def get_author_info(self):
         try:
             author = self.data["data"]["cell_comments"][0]["comment_info"]["item"]["author"]

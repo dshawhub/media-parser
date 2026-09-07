@@ -40,8 +40,9 @@ class ZuiyouParser(BaseParser):
             return data["videos"][video_key]["url"]
         except: return None
     def get_cover_photo_url(self): return None
-    def get_title_content(self):
-        try: return self.data["data"]["post"]["content"]
+    def get_title_content(self): return None
+    def get_description(self):
+        try: return self.data["data"]["post"]["content"] or None
         except: return None
     def get_author_info(self):
         try:

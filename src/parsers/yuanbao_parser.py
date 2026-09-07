@@ -95,9 +95,6 @@ class YuanbaoParser(BaseParser):
 
         self.video_list = self._unique(self.video_list)
         self.image_list = self._unique(self.image_list)
-        self.video_url = self.video_list[0] if self.video_list else None
-        if not self.cover_url:
-            self.cover_url = self.image_list[0] if self.image_list else None
 
     def _parse_chat_share(self, payload):
         chat = payload.get("chat") or {}

@@ -30,6 +30,7 @@ class XiaoyunqueParser(BaseParser):
         }
         self.data = {
             "title": "",
+            "desc": None,
             "video_url": None,
             "video_list": [],
             "cover_url": None,
@@ -81,7 +82,8 @@ class XiaoyunqueParser(BaseParser):
         user_info = generate_page.get("user_info") or {}
         item_info = generate_page.get("item_info") or {}
 
-        title = item_info.get("desc") or item_info.get("title") or "小云雀AI 作品"
+        title = item_info.get("title") or None
+        desc = item_info.get("desc") or None
 
         # 图片列表
         image_info = item_info.get("image_info") or []
@@ -102,9 +104,6 @@ class XiaoyunqueParser(BaseParser):
 
         # 封面图
         cover_url = item_info.get("cover_url")
-        if not cover_url and image_list:
-            cover_url = image_list[0]
-
         author = {
             "nickname": user_info.get("nick_name") or "",
             "author_id": str(user_info.get("user_id") or user_info.get("sec_uid") or ""),
@@ -113,6 +112,7 @@ class XiaoyunqueParser(BaseParser):
 
         return {
             "title": title,
+            "desc": desc,
             "video_url": video_url,
             "video_list": video_list,
             "cover_url": cover_url,
@@ -127,7 +127,10 @@ class XiaoyunqueParser(BaseParser):
         return self.data.get("video_list") or []
 
     def get_title_content(self):
-        return self.data.get("title") or ""
+        return self.data.get("title") or None
+
+    def get_description(self):
+        return self.data.get("desc") or None
 
     def get_cover_photo_url(self):
         return self.data.get("cover_url")

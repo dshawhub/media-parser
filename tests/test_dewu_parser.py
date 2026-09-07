@@ -71,7 +71,8 @@ class DewuParserTest(unittest.TestCase):
         """
         with patch.object(DewuParser, "fetch_html_content", return_value=fake_html):
             parser = DewuParser("https://m.dewu.com/rn-activity/community-share?trendId=452256836")
-            self.assertEqual(parser.get_title_content(), "新年第一条项链")
+            self.assertEqual(parser.get_title_content(), "")
+            self.assertEqual(parser.get_description(), "新年第一条项链")
             self.assertIsNone(parser.get_real_video_url())
             self.assertEqual(parser.get_cover_photo_url(), "https://image-cdn.poizon.com/cover.jpg")
             self.assertEqual(len(parser.get_image_list()), 2)

@@ -17,6 +17,7 @@ class ToutiaoParserTest(unittest.TestCase):
 
         sample_article_info = {
             "title": "测试今日头条视频",
+            "content": "今日头条视频正文",
             "posterUrl": "https://p3.toutiaoimg.com/test_cover.jpg",
             "mediaUser": {
                 "screenName": "测试创作者",
@@ -54,6 +55,7 @@ class ToutiaoParserTest(unittest.TestCase):
             parser = ToutiaoParser("https://www.toutiao.com/video/7680960670263493172")
 
             self.assertEqual(parser.get_title_content(), "测试今日头条视频")
+            self.assertEqual(parser.get_description(), "今日头条视频正文")
             self.assertEqual(parser.get_cover_photo_url(), "https://p3.toutiaoimg.com/test_cover.jpg")
             self.assertEqual(parser.get_author_info(), {
                 "author": "测试创作者",

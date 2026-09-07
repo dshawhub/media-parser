@@ -33,7 +33,7 @@ class PineconeMomentParserTest(unittest.TestCase):
         parser = PineconeMomentParser(self.URL)
         self.assertEqual(parser.get_title_content(), "有一種信念叫越野跑")
         self.assertEqual(parser.get_author_info()["nickname"], "MissK")
-        self.assertEqual(parser.get_real_video_url(), "https://oss.example.com/page1.mp4")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(len(parser.get_image_list()), 2)
         self.assertEqual(parser.get_audio_url(), "https://oss.example.com/dubbing.m4a")
         self.assertEqual(parser.get_cover_photo_url(), "https://oss.example.com/cover.jpg")

@@ -94,12 +94,11 @@ class KwaiyingParser(BaseParser):
         return self.resource_data.get("videoUrl")
 
     def get_title_content(self):
-        """提取模板标题或文案描述。"""
-        return (
-            self.resource_data.get("name")
-            or (self.resource_data.get("templateBean") or {}).get("description")
-            or "快影模板"
-        )
+        """提取模板独立标题。"""
+        return self.resource_data.get("name") or None
+
+    def get_description(self):
+        return (self.resource_data.get("templateBean") or {}).get("description") or None
 
     def get_cover_photo_url(self):
         """提取封面图地址。"""

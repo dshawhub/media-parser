@@ -128,7 +128,7 @@ class YuanbaoParserTest(unittest.TestCase):
         with patch("requests.Session.get", return_value=self._response(page_props)):
             parser = YuanbaoParser("https://yb.tencent.com/s/testShareId")
 
-        self.assertEqual(parser.get_real_video_url(), "https://cos.example.com/video-original.mp4")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(parser.get_video_list(), ["https://cos.example.com/video-original.mp4"])
         self.assertEqual(parser.get_cover_photo_url(), "https://cos.example.com/video-cover.jpg")
         self.assertEqual(parser.get_image_list(), [])

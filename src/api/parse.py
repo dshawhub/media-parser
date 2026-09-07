@@ -155,18 +155,31 @@ def _execute_parse(text, access):
         ]
         processed_video_list = list(dict.fromkeys(processed_video_list))
         primary_video_url = UrlParser.convert_to_https(content_data['video_url'])
+        if not primary_video_url and processed_video_list:
+            primary_video_url = processed_video_list[0]
         if primary_video_url and primary_video_url in processed_video_list:
             processed_video_list.remove(primary_video_url)
             processed_video_list.insert(0, primary_video_url)
 
-        # 4. 统一转换 HTTPS
+        # 4. 统一转换 HTTPS，并维持 v1 既有主字段的兜底语义。
+        title = content_data['title']
+        desc = content_data['desc']
+        if not title and desc:
+            title = desc
+
+        cover_url = UrlParser.convert_to_https(content_data['cover_url'])
+        if not cover_url and processed_image_list:
+            first_image = processed_image_list[0]
+            cover_url = first_image.get('url') if isinstance(first_image, dict) else first_image
+
         data_dict = {
             'video_id': UrlParser.get_video_id(redirect_url),
             'platform': platform,
-            'title': content_data['title'],
+            'title': title,
+            'desc': desc,
             'video_url': primary_video_url,
             'audio_url': UrlParser.convert_to_https(content_data.get('audio_url')),
-            'cover_url': UrlParser.convert_to_https(content_data['cover_url']),
+            'cover_url': cover_url,
             'author': content_data['author'],
             'image_list': processed_image_list
         }
@@ -212,6 +225,7 @@ def _fetch_with_retry(parser, platform):
     for i in range(max_attempts):
         res = {
             'title': parser.get_title_content(),
+            'desc': safe_execute(getattr(parser, 'get_description', None)),
             'video_url': parser.get_real_video_url(),
             'video_list': safe_execute(getattr(parser, 'get_video_list', None), default=[]),
             'cover_url': parser.get_cover_photo_url(),
@@ -220,8 +234,6 @@ def _fetch_with_retry(parser, platform):
             'audio_url': safe_execute(getattr(parser, 'get_audio_url', None)),
             'subtitles': safe_execute(getattr(parser, 'get_subtitles', None))
         }
-        if not res['video_url'] and res['video_list']:
-            res['video_url'] = res['video_list'][0]
         if res['video_url'] or res['video_list'] or res['image_list'] or res['audio_url']:
             return res
             

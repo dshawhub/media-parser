@@ -17,6 +17,10 @@ class BaseParser:
     def get_title_content(self):
         raise NotImplementedError
 
+    def get_description(self):
+        """获取作品文案或描述；平台没有独立描述时返回 None。"""
+        return None
+
     def get_cover_photo_url(self):
         raise NotImplementedError
 

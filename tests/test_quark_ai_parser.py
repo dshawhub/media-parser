@@ -33,9 +33,9 @@ class QuarkAIParserTest(unittest.TestCase):
             )
 
         self.assertEqual(parser.get_title_content(), "夸克 AI 视频")
-        self.assertEqual(parser.get_real_video_url(), "https://quark-aistudio-cdn.quark.cn/video.mp4?auth_key=abc")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(parser.get_video_list(), ["https://quark-aistudio-cdn.quark.cn/video.mp4?auth_key=abc"])
-        self.assertEqual(parser.get_cover_photo_url(), "https://quark-aistudio-cdn.quark.cn/cover.jpg?auth_key=abc")
+        self.assertIsNone(parser.get_cover_photo_url())
         self.assertEqual(parser.get_image_list(), ["https://quark-aistudio-cdn.quark.cn/cover.jpg?auth_key=abc"])
 
     def test_parses_act_quark_chat_share(self):
@@ -57,12 +57,11 @@ class QuarkAIParserTest(unittest.TestCase):
             )
 
         self.assertEqual(parser.get_title_content(), "分析图片内容")
-        self.assertEqual(parser.get_real_video_url(), "https://workspace-zb-cdn.quark.cn/video.mp4?auth_key=123")
+        self.assertIsNone(parser.get_real_video_url())
         self.assertEqual(parser.get_video_list(), ["https://workspace-zb-cdn.quark.cn/video.mp4?auth_key=123"])
-        self.assertEqual(parser.get_cover_photo_url(), "https://workspace-zb-cdn.quark.cn/image.jpg?auth_key=123")
+        self.assertIsNone(parser.get_cover_photo_url())
         self.assertEqual(parser.get_image_list(), ["https://workspace-zb-cdn.quark.cn/image.jpg?auth_key=123"])
 
 
 if __name__ == "__main__":
     unittest.main()
-

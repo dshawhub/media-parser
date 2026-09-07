@@ -57,7 +57,7 @@ class ApiVideoCompatibilityTest(unittest.TestCase):
         self.assertEqual(data["video_url"], "https://example.com/video.mp4")
         self.assertNotIn("video_list", data)
 
-    def test_multiple_videos_include_optional_list(self):
+    def test_multiple_videos_keep_legacy_primary_video(self):
         response = self.parse_with(
             FakeParser(None, [
                 "https://example.com/video-1.mp4",
@@ -70,6 +70,16 @@ class ApiVideoCompatibilityTest(unittest.TestCase):
         self.assertEqual(data["video_url"], "https://example.com/video-1.mp4")
         self.assertEqual(data["video_list"][0], data["video_url"])
         self.assertEqual(len(data["video_list"]), 2)
+
+    def test_single_video_list_keeps_legacy_response_shape(self):
+        response = self.parse_with(
+            FakeParser(None, ["https://example.com/video-only.mp4"])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()["data"]
+        self.assertEqual(data["video_url"], "https://example.com/video-only.mp4")
+        self.assertNotIn("video_list", data)
 
 
 if __name__ == "__main__":

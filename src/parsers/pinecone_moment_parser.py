@@ -97,7 +97,7 @@ class PineconeMomentParser(BaseParser):
         return list(dict.fromkeys(url for url in urls if cls._valid_url(url)))
 
     def get_real_video_url(self):
-        return self.video_list[0] if self.video_list else None
+        return None
 
     def get_video_list(self):
         return self.video_list

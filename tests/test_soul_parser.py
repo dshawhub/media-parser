@@ -38,7 +38,8 @@ class SoulParserTest(unittest.TestCase):
 
         self.assertEqual(parser.get_real_video_url(), "https://video.example.com/work.mp4")
         self.assertEqual(parser.get_cover_photo_url(), "https://image.example.com/cover.jpg")
-        self.assertEqual(parser.get_title_content(), "测试 Soul 帖子")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "测试 Soul 帖子")
         self.assertEqual(parser.get_author_info()["nickname"], "测试作者")
         self.assertEqual(get.call_args_list[0].kwargs["params"], {
             "postIdEcpt": "post-id", "sign": "signature", "signVersion": "0.0.1",

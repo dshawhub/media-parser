@@ -44,7 +44,8 @@ class JimengParserTest(unittest.TestCase):
         with patch("requests.Session.post", return_value=response) as post:
             parser = JimengParser(url)
 
-        self.assertEqual(parser.get_title_content(), "测试即梦作品")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "测试即梦作品")
         self.assertEqual(parser.get_real_video_url(), "https://video.example.com/origin.mp4")
         self.assertEqual(parser.get_video_list(), ["https://video.example.com/origin.mp4"])
         self.assertEqual(parser.get_cover_photo_url(), "https://image.example.com/4096.jpg")

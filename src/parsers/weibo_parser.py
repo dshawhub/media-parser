@@ -257,15 +257,17 @@ class WeiboParser(BaseParser):
         return None
 
     def get_title_content(self):
+        return self.post_data.get('title') or None
+
+    def get_description(self):
         content = (
             self.post_data.get('text_raw', '')
             or self.post_data.get('text', '')
             or self.post_data.get('content', '')
-            or self.post_data.get('title', '')
         )
         # Simple cleanup if there is HTML
         content = re.sub(r'<[^>]+>', '', content)
-        return content
+        return content or None
 
     def get_cover_photo_url(self):
         try:

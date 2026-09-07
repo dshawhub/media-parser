@@ -34,9 +34,10 @@ class XiaoyunqueParserTest(unittest.TestCase):
         with patch("requests.Session.post", return_value=response) as post:
             parser = XiaoyunqueParser(url)
 
-        self.assertEqual(parser.get_title_content(), "测试小云雀作品描述")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "测试小云雀作品描述")
         self.assertEqual(parser.get_image_list(), ["https://image.example.com/item1.png"])
-        self.assertEqual(parser.get_cover_photo_url(), "https://image.example.com/item1.png")
+        self.assertIsNone(parser.get_cover_photo_url())
         self.assertEqual(parser.get_author_info()["nickname"], "测试作者")
         self.assertEqual(
             post.call_args.kwargs["json"]["query_params"]["artifact_id"],

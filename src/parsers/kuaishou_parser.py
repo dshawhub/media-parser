@@ -358,19 +358,21 @@ class KuaishouParser(BaseParser):
         return None
 
     def get_title_content(self):
+        return None
+
+    def get_description(self):
         try:
             photo_key = f"VisionVideoDetailPhoto:{self.video_id}"
             if self.page_type == "VIDEO":
-                title = self.client.get(photo_key, {}).get('caption', '')
-                if title:
-                    return title
+                caption = self.client.get(photo_key, {}).get('caption', '')
+                if caption:
+                    return caption
             if self.page_type in ("ATLAS", "VIDEO"):
                 payload = self._get_atlas_payload()
-                return payload.get("photo", {}).get("caption", "")
+                return payload.get("photo", {}).get("caption") or None
         except Exception as e:
-            logger.warning(f"Failed to parse title content: {e}")
-            pass
-        return ""
+            logger.warning(f"Failed to parse Kuaishou description: {e}")
+        return None
 
     def get_cover_photo_url(self):
         try:

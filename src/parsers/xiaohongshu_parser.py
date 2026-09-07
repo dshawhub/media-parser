@@ -71,19 +71,13 @@ class XiaohongshuParser(BaseParser):
             return None
 
     def get_title_content(self):
-        title = self.note_data.get('title', '')
-        desc = self.note_data.get('desc', '')
-        return f"{title}\n{desc}".strip()
+        return self.note_data.get('title', '') or None
+
+    def get_description(self):
+        return self.note_data.get('desc', '') or None
 
     def get_cover_photo_url(self):
-        try:
-            image_list = self.note_data.get('imageList', [])
-            if image_list:
-                cover_url = image_list[0].get('urlDefault', '')
-                return cover_url.replace("\\u002F", "/")
-            return None
-        except (KeyError, IndexError):
-            return None
+        return None
 
     def get_image_list(self):
         image_url_list = []

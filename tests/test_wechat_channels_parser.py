@@ -40,7 +40,8 @@ class WeChatChannelsParserTest(unittest.TestCase):
         parser = WeChatChannelsParser(self.URL)
 
         self.assertEqual(parser.get_real_video_url(), "https://finder.video.qq.com/video.mp4")
-        self.assertEqual(parser.get_title_content(), "测试视频号作品")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "测试视频号作品")
         self.assertEqual(parser.get_cover_photo_url(), "https://finder.video.qq.com/cover.jpg")
         self.assertEqual(parser.get_author_info()["nickname"], "测试作者")
         payload = post.call_args.kwargs["json"]
@@ -170,7 +171,8 @@ class WeChatChannelsParserTest(unittest.TestCase):
         parser = WeChatChannelsParser("https://weixin.qq.com/sph/APclmPJEZ0")
 
         self.assertIsNone(parser.get_real_video_url())
-        self.assertEqual(parser.get_title_content(), "摄影图集")
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "摄影图集")
         self.assertEqual(len(parser.get_image_list()), 2)
         self.assertEqual(parser.get_image_list()[0], "https://finder.video.qq.com/pic1.jpg")
         self.assertEqual(parser.get_audio_url(), "https://wx.music.tc.qq.com/music.m4a")

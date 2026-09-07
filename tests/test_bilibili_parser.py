@@ -67,6 +67,7 @@ class BilibiliParserTest(unittest.TestCase):
             parser.get_author_info(),
             {"nickname": "测试作者", "author_id": "123", "avatar": "https://example.com/avatar.jpg"},
         )
+        self.assertIsNone(parser.get_description())
 
     def test_parses_dynamic_video_url(self):
         dynamic_item = {
@@ -105,6 +106,7 @@ class BilibiliParserTest(unittest.TestCase):
                         "type": "MAJOR_TYPE_OPUS",
                         "opus": {
                             "title": "图文动态标题",
+                            "summary": {"text": "图文动态正文"},
                             "pics": [
                                 {"url": "https://example.com/pic1.jpg"},
                                 {"url": "https://example.com/pic2.jpg"},
@@ -118,6 +120,7 @@ class BilibiliParserTest(unittest.TestCase):
             parser = BilibiliParser("https://t.bilibili.com/opus/1245189054385881096")
             self.assertIsNone(parser.bvid)
             self.assertEqual(parser.get_title_content(), "图文动态标题")
+            self.assertEqual(parser.get_description(), "图文动态正文")
             self.assertEqual(parser.get_cover_photo_url(), "https://example.com/pic1.jpg")
             self.assertEqual(
                 parser.get_author_info(),

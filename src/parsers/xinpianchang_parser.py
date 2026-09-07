@@ -87,8 +87,6 @@ class XinpianchangParser(BaseParser):
                             if isinstance(p, dict) and p.get("url") and p["url"].startswith("http")
                         ]
                         self.video_list = list(dict.fromkeys(urls))
-                        if self.video_list:
-                            self.video_url = self.video_list[0]
         except Exception as exc:
             logger.warning("Failed to fetch Xinpianchang data: %s", exc)
 

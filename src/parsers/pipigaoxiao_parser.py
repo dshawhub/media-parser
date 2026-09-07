@@ -54,12 +54,15 @@ class PipigaoxiaoParser(BaseParser):
             return None
 
     def get_title_content(self):
+        return None
+
+    def get_description(self):
         try:
-            if not self.data: return ""
-            return self.data.get('data', {}).get('post', {}).get('content', '')
+            if not self.data: return None
+            return self.data.get('data', {}).get('post', {}).get('content', '') or None
         except Exception as e:
-            logger.warning(f"Failed to parse Pipigaoxiao title content: {e}")
-            return ""
+            logger.warning(f"Failed to parse Pipigaoxiao description: {e}")
+            return None
 
     def get_cover_photo_url(self):
         try:

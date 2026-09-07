@@ -84,6 +84,7 @@ class WechatMpParser(BaseParser):
             # 4. 正文高清全量插图 (将 /640? 或 /300? 升级为原始画质 /0?)
             image_list = []
             content_box = soup.find("div", id="js_content") or soup
+            description = content_box.get_text("\n", strip=True) or None
             for img in content_box.find_all("img"):
                 src = img.get("data-src") or img.get("src")
                 if src and src.startswith("http") and "qpic.cn" in src:
@@ -178,6 +179,7 @@ class WechatMpParser(BaseParser):
 
             return {
                 "title": title,
+                "desc": description,
                 "author": {
                     "nickname": author_name,
                     "author_id": author_id,
@@ -200,6 +202,10 @@ class WechatMpParser(BaseParser):
     def get_title_content(self):
         """提取文章标题。"""
         return self.article_data.get("title") or "微信公众号文章"
+
+    def get_description(self):
+        """提取已去除 HTML 标记的文章正文。"""
+        return self.article_data.get("desc") or None
 
     def get_cover_photo_url(self):
         """提取文章封面图。"""
