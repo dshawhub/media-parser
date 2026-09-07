@@ -15,9 +15,14 @@ services:
     volumes:
       # 将宿主机上的日志映射，便于容器重建后保留日志和排查问题
       - ./logs:/app/logs
+      # 持久化用户、API Key、开关和调用日志
+      - ./data:/app/data
     # 设置容器内的时区为本地时区与各平台 Cookie
     environment:
       - TZ=Asia/Shanghai
+      - SECRET_KEY=${SECRET_KEY:-}
+      - DATABASE_PATH=/app/data/media_parser.db
+      - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-false}
       - DOUYIN_COOKIE=${DOUYIN_COOKIE:-}
       - DOUBAO_COOKIE=${DOUBAO_COOKIE:-}
       - YUANBAO_COOKIE=${YUANBAO_COOKIE:-}

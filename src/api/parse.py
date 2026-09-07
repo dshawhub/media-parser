@@ -1,8 +1,20 @@
-from flask import Blueprint, request, jsonify
+import time
+
+from flask import Blueprint, current_app, jsonify, request
 from configs.logging_config import get_logger
 from utils.web_fetcher import WebFetcher, UrlParser
 from src.parser_factory import ParserFactory
 from src.api.response import make_response
+from src.db import refund_user_credit, reserve_user_credit
+from src.api.access import (
+    authenticate_api_key,
+    consume_rate_limit,
+    demo_enabled,
+    get_client_ip,
+    global_api_enabled,
+    platform_access,
+    record_request,
+)
 
 bp = Blueprint('parse', __name__)
 MAX_TEXT_LENGTH = 2000
@@ -17,25 +29,60 @@ def health():
 
 @bp.route('/parse', methods=['POST'])
 def parse():
-    try:
-        data = request.get_json(silent=True)
-        if not isinstance(data, dict):
-            return make_response(400, '请求体必须是 JSON 对象', None, False, 'INVALID_REQUEST'), 400
+    """网页体验兼容接口；正式调用请使用带 API Key 的 GET /api/v1/parse。"""
+    if not global_api_enabled():
+        return make_response(503, 'API 服务已暂停', None, False, 'API_DISABLED'), 503
+    if not demo_enabled():
+        return make_response(403, '在线体验暂未开放', None, False, 'DEMO_DISABLED'), 403
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return make_response(400, '请求体必须是 JSON 对象', None, False, 'INVALID_REQUEST'), 400
+    if data.get('website'):
+        return make_response(400, '非法请求', None, False, 'INVALID_REQUEST'), 400
+    if not (current_app and current_app.testing):
+        client_ip = get_client_ip()
+        if not consume_rate_limit(f"demo_ip:{client_ip}", 5, window_seconds=60):
+            return make_response(429, '体验解析过于频繁，请 1 分钟后再试', None, False, 'RATE_LIMITED'), 429
+    return _execute_parse(data.get('text'), None)
 
-        text = data.get('text')
+
+@bp.route('/v1/parse', methods=['GET'])
+def simple_parse():
+    """面向客户的简单 GET 接口，支持 Bearer 请求头或 key 查询参数。"""
+    if not global_api_enabled():
+        return make_response(503, 'API 服务已暂停', None, False, 'API_DISABLED'), 503
+    access, error = authenticate_api_key()
+    if error:
+        status, message, code = error
+        return make_response(status, message, None, False, code), status
+    return _execute_parse(request.args.get('url') or request.args.get('text'), access)
+
+
+def _execute_parse(text, access):
+    started = time.monotonic()
+    platform = None
+    response = None
+    status = 500
+    credit_reserved = False
+    credit_committed = False
+    try:
         if not isinstance(text, str) or not text.strip():
-            return make_response(400, '请提供包含分享链接的文本', None, False, 'INVALID_TEXT'), 400
+            response, status = make_response(400, '请提供包含分享链接的文本', None, False, 'INVALID_TEXT'), 400
+            return response, status
         if len(text) > MAX_TEXT_LENGTH:
-            return make_response(400, f'分享文本不能超过 {MAX_TEXT_LENGTH} 个字符', None, False, 'TEXT_TOO_LONG'), 400
+            response, status = make_response(400, f'分享文本不能超过 {MAX_TEXT_LENGTH} 个字符', None, False, 'TEXT_TOO_LONG'), 400
+            return response, status
 
         share_url = UrlParser.get_url(text)
         if not share_url:
-            return make_response(400, '未找到有效的分享链接', None, False, 'URL_NOT_FOUND'), 400
+            response, status = make_response(400, '未找到有效的分享链接', None, False, 'URL_NOT_FOUND'), 400
+            return response, status
         
         # 1. 解析基础信息
         redirect_url = WebFetcher.fetch_redirect_url(share_url)
         if not redirect_url:
-            return make_response(400, '无法访问或识别该分享链接', None, False, 'REDIRECT_FAILED'), 400
+            response, status = make_response(400, '无法访问或识别该分享链接', None, False, 'REDIRECT_FAILED'), 400
+            return response, status
 
         platform = UrlParser.get_platform(redirect_url)
         real_url = UrlParser.extract_video_address(redirect_url)
@@ -43,7 +90,27 @@ def parse():
 
         if not platform:
             logger.error(f'This link is not supported for extraction: {real_url}')
-            return make_response(400, '该链接尚未支持提取', None, False, 'PLATFORM_NOT_SUPPORTED'), 400
+            response, status = make_response(400, '该链接尚未支持提取', None, False, 'PLATFORM_NOT_SUPPORTED'), 400
+            return response, status
+
+        denied = platform_access(platform)
+        if denied:
+            status, message, code = denied
+            response = make_response(status, message, None, False, code)
+            return response, status
+
+        if access and access["user_id"]:
+            reservation = reserve_user_credit(access["user_id"])
+            if reservation is None:
+                response, status = make_response(
+                    402,
+                    '账号解析积分已耗尽，请联系管理员充值',
+                    None,
+                    False,
+                    'INSUFFICIENT_CREDITS',
+                ), 402
+                return response, status
+            credit_reserved = reservation
 
         # 2. 获取解析器
         parser = ParserFactory.create_parser(platform, real_url)
@@ -59,12 +126,16 @@ def parse():
         ):
             logger.error(f"Failed to retrieve media content for {platform}")
             if platform == '小红书':
-                return make_response(400, '解析失败：该链接需要小红书登录 Cookie 校验，请在配置中提供有效 Cookie 后重试', None, False, 'XIAOHONGSHU_COOKIE_REQUIRED'), 400
+                response, status = make_response(400, '解析失败：该链接需要小红书登录 Cookie 校验，请在配置中提供有效 Cookie 后重试', None, False, 'XIAOHONGSHU_COOKIE_REQUIRED'), 400
+                return response, status
             if platform == '拼多多':
-                return make_response(400, '解析失败：该链接需要拼多多登录 Cookie 校验，请在配置中提供有效 Cookie 后重试', None, False, 'PINDUODUO_COOKIE_REQUIRED'), 400
+                response, status = make_response(400, '解析失败：该链接需要拼多多登录 Cookie 校验，请在配置中提供有效 Cookie 后重试', None, False, 'PINDUODUO_COOKIE_REQUIRED'), 400
+                return response, status
             if platform in ('视频号', '微信视频号'):
-                return make_response(400, '解析失败：该链接需要配置腾讯元宝 YUANBAO_COOKIE 凭证后重试', None, False, 'WECHAT_CHANNELS_COOKIE_REQUIRED'), 400
-            return make_response(400, '提取媒体内容失败，请检查链接或稍后重试', None, False, 'MEDIA_NOT_FOUND'), 400
+                response, status = make_response(400, '解析失败：该链接需要配置腾讯元宝 YUANBAO_COOKIE 凭证后重试', None, False, 'WECHAT_CHANNELS_COOKIE_REQUIRED'), 400
+                return response, status
+            response, status = make_response(400, '提取媒体内容失败，请检查链接或稍后重试', None, False, 'MEDIA_NOT_FOUND'), 400
+            return response, status
 
         processed_image_list = []
         if content_data.get('image_list'):
@@ -105,11 +176,33 @@ def parse():
             data_dict['subtitles'] = content_data['subtitles']
         
         logger.debug(f'Parse Success for platform {platform}')
-        return make_response(200, '成功', data_dict, True), 200
+        response, status = make_response(200, '成功', data_dict, True), 200
+        credit_committed = True
+        return response, status
 
     except Exception as e:
         logger.exception("Parse Error") # 使用 exception 会带上堆栈信息
-        return make_response(500, '功能太火爆啦，请稍后再试', None, False, 'INTERNAL_ERROR'), 500
+        response, status = make_response(500, '功能太火爆啦，请稍后再试', None, False, 'INTERNAL_ERROR'), 500
+        return response, status
+    finally:
+        if credit_reserved and not credit_committed:
+            try:
+                refund_user_credit(access["user_id"])
+            except Exception:
+                logger.exception("Reserved credit refund failed")
+        if response is not None:
+            payload = response.get_json(silent=True) or {}
+            try:
+                record_request(
+                    access,
+                    platform,
+                    request.path,
+                    status,
+                    payload.get('error_code'),
+                    int((time.monotonic() - started) * 1000),
+                )
+            except Exception:
+                logger.exception("Request log write failed")
 
 
 def _fetch_with_retry(parser, platform):
@@ -149,4 +242,3 @@ def safe_execute(func, default=None):
         return val
     except Exception:
         return default
-

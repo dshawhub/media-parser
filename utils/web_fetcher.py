@@ -15,8 +15,28 @@ class WebFetcher:
     }
 
     @staticmethod
+    def _is_allowed_target(url):
+        """仅允许向已支持的平台域名发起 HTTP(S) 请求。"""
+        if not isinstance(url, str) or not url.strip():
+            return False
+        try:
+            parsed = urlparse(url)
+            if parsed.scheme not in {"http", "https"}:
+                return False
+            if not parsed.hostname or parsed.username is not None or parsed.password is not None:
+                return False
+            if parsed.port not in {None, 80, 443}:
+                return False
+        except ValueError:
+            return False
+        return UrlParser.get_platform(url) is not None
+
+    @staticmethod
     def fetch_redirect_url(url, max_redirects=5):
         if not isinstance(url, str) or not url.strip() or max_redirects < 1:
+            return None
+        if not WebFetcher._is_allowed_target(url):
+            logger.warning("Blocked outbound request to unsafe target: %s", UrlParser.get_domain(url))
             return None
         # 知乎公开 API 可直接通过内容 ID 解析，访问网页常触发 403 风控。
         # 绿洲分享页会对通用桌面请求头返回 500，由解析器使用移动端请求头抓取。
@@ -41,6 +61,12 @@ class WebFetcher:
                     # 如果重定向到了登录页、404拦截页、验证码校验页或错误页，不要更新 url，直接中断以保留原始有效 URL
                     if any(path in redirect_url for path in ["/login", "/404", "/captcha", "/verify", "/error", "/visitor"]):
                         break
+                    if not WebFetcher._is_allowed_target(redirect_url):
+                        logger.warning(
+                            "Blocked redirect to unsafe target: %s",
+                            UrlParser.get_domain(redirect_url),
+                        )
+                        return None
                     current_url = redirect_url
                     if UrlParser.get_platform(current_url):
                         break

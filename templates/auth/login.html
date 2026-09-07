@@ -1,0 +1,5 @@
+{% extends 'base_console.html' %}{% block title %}登录{% endblock %}{% block body %}
+<main class="auth-wrap"><div class="auth-card"><div class="card"><h1 class="title">登录控制台</h1><p class="subtitle">管理你的 API Key 和调用记录。</p>
+{% for category,message in get_flashed_messages(with_categories=true) %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="field"><label>用户名</label><input name="username" autocomplete="username" required></div><div class="field"><label>密码</label><input name="password" type="password" autocomplete="current-password" required></div><button class="btn btn-primary btn-block">登录</button></form>
+<p class="muted" style="text-align:center;font-size:13px;margin:18px 0 0">没有账号？<a style="color:#4f46e5" href="{{ url_for('auth.register') }}">立即注册</a>{% if not has_admin %} · <a style="color:#4f46e5" href="{{ url_for('auth.setup') }}">初始化管理员</a>{% endif %}</p></div></div></main>{% endblock %}

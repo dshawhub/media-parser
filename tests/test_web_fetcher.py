@@ -308,8 +308,33 @@ class WebFetcherTest(unittest.TestCase):
             self.response("https://www.douyin.com/share/123"),
         ]
         with patch("utils.web_fetcher.requests.get", side_effect=responses):
-            result = WebFetcher.fetch_redirect_url("https://short.example/a")
+            result = WebFetcher.fetch_redirect_url("https://v.douyin.com/a")
         self.assertEqual(result, "https://www.douyin.com/share/123")
+
+    def test_rejects_unsupported_target_before_request(self):
+        with patch("utils.web_fetcher.requests.get") as get:
+            result = WebFetcher.fetch_redirect_url("http://127.0.0.1:8051/admin")
+        get.assert_not_called()
+        self.assertIsNone(result)
+
+    def test_rejects_redirect_before_requesting_unsupported_target(self):
+        with patch(
+            "utils.web_fetcher.requests.get",
+            return_value=self.response("http://169.254.169.254/latest/meta-data/"),
+        ) as get:
+            result = WebFetcher.fetch_redirect_url("https://v.douyin.com/short-code")
+        self.assertEqual(get.call_count, 1)
+        self.assertIsNone(result)
+
+    def test_rejects_credentials_and_nonstandard_ports(self):
+        targets = (
+            "https://user:password@www.douyin.com/video/1",
+            "https://www.douyin.com:8080/video/1",
+        )
+        for target in targets:
+            with self.subTest(target=target), patch("utils.web_fetcher.requests.get") as get:
+                self.assertIsNone(WebFetcher.fetch_redirect_url(target))
+                get.assert_not_called()
 
     def test_accepts_kuaishou_random_mobile_subdomain_redirect(self):
         redirect_url = "https://random-value.m.chenzhongtech.com/fw/photo/123?noise=x"
@@ -385,15 +410,17 @@ class WebFetcherTest(unittest.TestCase):
                 self.assertEqual(result, "https://www.douyin.com/video/123")
 
     def test_returns_none_for_unsupported_final_domain(self):
-        with patch("utils.web_fetcher.requests.get", return_value=self.response()):
+        with patch("utils.web_fetcher.requests.get", return_value=self.response()) as get:
             self.assertIsNone(WebFetcher.fetch_redirect_url("https://unsupported.example/a"))
+        get.assert_not_called()
 
-    def test_returns_none_after_redirect_limit(self):
+    def test_rejects_unsupported_redirect_immediately(self):
         with patch(
             "utils.web_fetcher.requests.get",
             return_value=self.response("https://unsupported.example/next"),
-        ):
-            self.assertIsNone(WebFetcher.fetch_redirect_url("https://unsupported.example/start", max_redirects=2))
+        ) as get:
+            self.assertIsNone(WebFetcher.fetch_redirect_url("https://v.douyin.com/start", max_redirects=5))
+        self.assertEqual(get.call_count, 1)
 
     def test_returns_none_on_request_error_or_invalid_input(self):
         with patch(

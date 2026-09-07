@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="32x32">
+    <title>{% block title %}控制台{% endblock %} · Media Parser</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+</head>
+<body>
+{% block body %}
+{% if g.user %}
+<div class="console-app">
+    <aside class="sidebar">
+        <div>
+            <div class="sidebar-head">
+                <a class="brand" href="{{ url_for('web.index') }}">
+                    <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Logo">
+                    <span>Media Parser</span>
+                </a>
+                <span class="role-badge">{{ '超级管理员' if g.user['role']=='admin' else '客户控制台' }}</span>
+            </div>
+            <nav class="sidebar-nav">
+                {% if g.user['role'] == 'admin' %}
+                <div class="nav-group-title">系统管理</div>
+                <a href="#overview" class="nav-item active"><i class="nav-icon">📊</i><span>概览</span></a>
+                <a href="#settings" class="nav-item"><i class="nav-icon">⚙️</i><span>系统设置</span></a>
+                
+                <div class="nav-group-title">业务管理</div>
+                <a href="#users" class="nav-item"><i class="nav-icon">👥</i><span>客户账号</span></a>
+                <a href="#keys" class="nav-item"><i class="nav-icon">🔑</i><span>API 密钥</span></a>
+                <a href="#platforms" class="nav-item"><i class="nav-icon">🌐</i><span>解析平台</span></a>
+                
+                <div class="nav-group-title">运维监控</div>
+                <a href="#logs" class="nav-item"><i class="nav-icon">📜</i><span>运行日志</span></a>
+                {% else %}
+                <div class="nav-group-title">概览与统计</div>
+                <a href="#overview" class="nav-item active"><i class="nav-icon">📊</i><span>概览</span></a>
+                <a href="#logs" class="nav-item"><i class="nav-icon">📜</i><span>请求日志</span></a>
+                
+                <div class="nav-group-title">开发者中心</div>
+                <a href="#keys" class="nav-item"><i class="nav-icon">🔑</i><span>API 密钥</span></a>
+                <a href="#docs" class="nav-item"><i class="nav-icon">📖</i><span>开发者文档</span></a>
+                {% endif %}
+            </nav>
+        </div>
+        <div class="sidebar-foot">
+            <div class="user-card-inner">
+                <div class="user-avatar">{{ g.user['username'][0]|upper }}</div>
+                <div class="user-meta">
+                    <div class="user-name">{{ g.user['username'] }}</div>
+                    <div class="user-role">{{ '超级管理员' if g.user['role']=='admin' else '客户账号' }}</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:2px">
+                <button type="button" class="sidebar-action-btn" onclick="openChangePasswordModal()" title="修改密码" aria-label="修改密码">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </button>
+                <form method="post" action="{{ url_for('auth.logout') }}" style="margin:0;display:flex">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="logout-icon-btn" title="退出登录" aria-label="退出登录">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+    <div class="main-wrapper">
+        <!-- 顶部浮动气泡卡片提示容器 (Toast Notification) -->
+        <div id="toast-container" class="toast-container" aria-live="polite">
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="toast-bubble toast-{{ category or 'info' }}" role="alert">
+                <div class="toast-icon">
+                    {% if category == 'error' %}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    {% elif category == 'warning' %}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    {% else %}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg>
+                    {% endif %}
+                </div>
+                <div class="toast-content">{{ message }}</div>
+                <button type="button" class="toast-close" onclick="dismissToast(this.closest('.toast-bubble'))" aria-label="关闭">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <header class="main-topbar">
+            <h1 class="page-title" id="active-page-title">{% block page_title %}{% endblock %}</h1>
+        </header>
+        {% block console_content %}{% endblock %}
+    </div>
+</div>
+
+<!-- 自定义操作确认弹窗 (Custom Confirmation Modal) -->
+<div id="confirm-modal-backdrop" class="modal-backdrop" style="display:none" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-header">
+            <div class="modal-icon-wrap danger" id="modal-icon-wrap">
+                <svg id="modal-icon-danger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <svg id="modal-icon-warning" style="display:none" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <svg id="modal-icon-primary" style="display:none" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <div>
+                <h3 class="modal-title" id="modal-title">操作确认</h3>
+                <p class="modal-desc" id="modal-message">确认执行此操作吗？</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="modal-btn-cancel">取消</button>
+            <button type="button" class="btn btn-danger" id="modal-btn-confirm">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 自定义修改个人密码弹窗 (Change Password Modal) -->
+<div id="change-password-modal-backdrop" class="modal-backdrop" style="display:none" aria-hidden="true">
+    <div class="modal-card" style="max-width:440px" role="dialog" aria-modal="true">
+        <div class="row between" style="margin-bottom:16px">
+            <h3 class="modal-title" style="margin:0">修改个人密码</h3>
+            <button type="button" class="toast-close" onclick="closeChangePasswordModal()" aria-label="关闭">&times;</button>
+        </div>
+        <form method="post" action="{{ url_for('auth.change_password') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field" style="margin:12px 0">
+                <label>原密码</label>
+                <input type="password" name="old_password" placeholder="请输入当前原密码" required autocomplete="current-password">
+            </div>
+            <div class="field" style="margin:12px 0">
+                <label>新密码 <span class="muted">(至少 8 位)</span></label>
+                <input type="password" name="new_password" minlength="8" placeholder="请输入新密码" required autocomplete="new-password">
+            </div>
+            <div class="field" style="margin:12px 0">
+                <label>确认新密码</label>
+                <input type="password" name="confirm_password" minlength="8" placeholder="请再次输入新密码" required autocomplete="new-password">
+            </div>
+            <div class="modal-footer" style="margin-top:20px">
+                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">取消</button>
+                <button type="submit" class="btn btn-primary">确认修改</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+<script>
+function switchConsoleTab() {
+    let hash = window.location.hash.replace('#', '') || 'overview';
+    const views = document.querySelectorAll('.tab-view');
+    const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+    const titleEl = document.getElementById('active-page-title');
+    let matchedNav = null;
+
+    navItems.forEach(item => {
+        const itemHash = (item.getAttribute('href') || '').replace('#', '');
+        if (itemHash === hash) {
+            item.classList.add('active');
+            matchedNav = item;
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    if (!matchedNav && navItems.length > 0) {
+        navItems[0].classList.add('active');
+        matchedNav = navItems[0];
+        hash = (matchedNav.getAttribute('href') || '').replace('#', '') || 'overview';
+    }
+
+    if (titleEl && matchedNav) {
+        const spanText = matchedNav.querySelector('span');
+        if (spanText) {
+            titleEl.textContent = spanText.textContent;
+        }
+    }
+
+    views.forEach(view => {
+        const viewId = view.getAttribute('id');
+        if (viewId === hash) {
+            view.style.display = 'block';
+        } else {
+            view.style.display = 'none';
+        }
+    });
+}
+
+function initChartInteractions() {
+    document.querySelectorAll('.chart-container').forEach(container => {
+        const tooltip = container.querySelector('.chart-tooltip');
+        const guideLine = container.querySelector('.chart-guide-line');
+        const svg = container.querySelector('svg');
+        if (!tooltip || !svg) return;
+
+        const triggers = container.querySelectorAll('.chart-col-trigger');
+
+        function showTooltip(el) {
+            const date = el.dataset.date;
+            const calls = el.dataset.calls;
+            const successes = el.dataset.successes;
+            const failures = el.dataset.failures;
+            const cx = parseFloat(el.dataset.cx);
+
+            if (guideLine) {
+                guideLine.setAttribute('x1', cx);
+                guideLine.setAttribute('x2', cx);
+                guideLine.style.display = 'block';
+            }
+
+            const failCount = parseInt(failures) || 0;
+            tooltip.innerHTML = `
+                <div class="tt-title">${date}</div>
+                <div class="tt-row">
+                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#4f46e5"></i>总调用</span>
+                    <strong>${calls} 次</strong>
+                </div>
+                <div class="tt-row">
+                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#10b981"></i>成功解析</span>
+                    <strong>${successes} 次</strong>
+                </div>
+                ${failCount > 0 ? `
+                <div class="tt-row">
+                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#ef4444"></i>失败解析</span>
+                    <strong>${failCount} 次</strong>
+                </div>` : ''}
+            `;
+            tooltip.classList.add('active');
+
+            const containerRect = container.getBoundingClientRect();
+            const svgRect = svg.getBoundingClientRect();
+            const scaleX = svgRect.width / 720;
+            const targetX = cx * scaleX;
+
+            let tooltipWidth = tooltip.offsetWidth || 130;
+            let left = targetX - (tooltipWidth / 2);
+
+            if (left < 10) left = 10;
+            if (left + tooltipWidth > containerRect.width - 10) {
+                left = containerRect.width - tooltipWidth - 10;
+            }
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = '12px';
+        }
+
+        function hideTooltip() {
+            if (tooltip) tooltip.classList.remove('active');
+            if (guideLine) guideLine.style.display = 'none';
+        }
+
+        triggers.forEach(trig => {
+            ['mouseenter', 'mousemove', 'click', 'touchstart'].forEach(evt => {
+                trig.addEventListener(evt, (e) => {
+                    showTooltip(trig);
+                }, { passive: true });
+            });
+        });
+
+        container.addEventListener('mouseleave', hideTooltip);
+    });
+}
+
+function dismissToast(el) {
+    if (!el || el.classList.contains('toast-hiding')) return;
+    el.classList.add('toast-hiding');
+    setTimeout(() => {
+        if (el && el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
+    }, 280);
+}
+
+function initToasts() {
+    const bubbles = document.querySelectorAll('.toast-bubble');
+    bubbles.forEach(bubble => {
+        let timer = setTimeout(() => dismissToast(bubble), 3500);
+        bubble.addEventListener('mouseenter', () => clearTimeout(timer));
+        bubble.addEventListener('mouseleave', () => {
+            timer = setTimeout(() => dismissToast(bubble), 1500);
+        });
+    });
+}
+
+window.showToast = function(message, type = 'success', duration = 3500) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = `toast-bubble toast-${type}`;
+    bubble.setAttribute('role', 'alert');
+    
+    let iconSvg = '';
+    if (type === 'error') {
+        iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    } else if (type === 'warning') {
+        iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    } else {
+        iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg>';
+    }
+    
+    bubble.innerHTML = `
+        <div class="toast-icon">${iconSvg}</div>
+        <div class="toast-content"></div>
+        <button type="button" class="toast-close" aria-label="关闭">&times;</button>
+    `;
+    bubble.querySelector('.toast-content').textContent = message;
+    bubble.querySelector('.toast-close').onclick = () => dismissToast(bubble);
+    
+    let timer = setTimeout(() => dismissToast(bubble), duration);
+    bubble.addEventListener('mouseenter', () => clearTimeout(timer));
+    bubble.addEventListener('mouseleave', () => {
+        timer = setTimeout(() => dismissToast(bubble), 1500);
+    });
+    
+    container.appendChild(bubble);
+};
+
+window.confirmModal = function({
+    title = '操作确认',
+    message = '确定继续执行此操作吗？',
+    confirmText = '确定',
+    cancelText = '取消',
+    type = 'danger'
+} = {}) {
+    return new Promise((resolve) => {
+        const backdrop = document.getElementById('confirm-modal-backdrop');
+        if (!backdrop) {
+            resolve(window.confirm(message));
+            return;
+        }
+
+        const titleEl = document.getElementById('modal-title');
+        const msgEl = document.getElementById('modal-message');
+        const btnConfirm = document.getElementById('modal-btn-confirm');
+        const btnCancel = document.getElementById('modal-btn-cancel');
+        const iconWrap = document.getElementById('modal-icon-wrap');
+        const iconDanger = document.getElementById('modal-icon-danger');
+        const iconWarning = document.getElementById('modal-icon-warning');
+        const iconPrimary = document.getElementById('modal-icon-primary');
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        btnConfirm.textContent = confirmText;
+        btnCancel.textContent = cancelText;
+
+        btnConfirm.className = `btn ${type === 'danger' ? 'btn-danger' : 'btn-primary'}`;
+        iconWrap.className = `modal-icon-wrap ${type}`;
+
+        if (iconDanger) iconDanger.style.display = type === 'danger' ? 'block' : 'none';
+        if (iconWarning) iconWarning.style.display = type === 'warning' ? 'block' : 'none';
+        if (iconPrimary) iconPrimary.style.display = type === 'primary' ? 'block' : 'none';
+
+        function cleanup(result) {
+            backdrop.classList.remove('modal-open');
+            setTimeout(() => {
+                backdrop.style.display = 'none';
+            }, 180);
+            window.removeEventListener('keydown', onKeyDown);
+            btnConfirm.onclick = null;
+            btnCancel.onclick = null;
+            backdrop.onclick = null;
+            resolve(result);
+        }
+
+        function onKeyDown(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cleanup(false);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                cleanup(true);
+            }
+        }
+
+        btnConfirm.onclick = () => cleanup(true);
+        btnCancel.onclick = () => cleanup(false);
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) cleanup(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+
+        backdrop.style.display = 'flex';
+        void backdrop.offsetHeight;
+        backdrop.classList.add('modal-open');
+        btnConfirm.focus();
+    });
+};
+
+function initConfirmInterceptions() {
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-confirm]');
+        if (!btn) return;
+
+        if (btn.dataset.confirmed === 'true') {
+            delete btn.dataset.confirmed;
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const message = btn.getAttribute('data-confirm') || '确定执行此操作吗？';
+        const title = btn.getAttribute('data-confirm-title') || '操作确认';
+        const confirmText = btn.getAttribute('data-confirm-text') || '确定';
+        const type = btn.getAttribute('data-confirm-type') || 'danger';
+
+        const ok = await window.confirmModal({ title, message, confirmText, type });
+        if (ok) {
+            btn.dataset.confirmed = 'true';
+            if (btn.tagName === 'FORM') {
+                if (e.target && e.target.name) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = e.target.name;
+                    hidden.value = e.target.value;
+                    btn.appendChild(hidden);
+                }
+                btn.submit();
+            } else if (btn.type === 'submit' && btn.form) {
+                if (btn.name) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = btn.name;
+                    hidden.value = btn.value;
+                    btn.form.appendChild(hidden);
+                }
+                btn.form.submit();
+            } else if (btn.tagName === 'A') {
+                window.location.href = btn.href;
+            } else {
+                btn.click();
+            }
+        }
+    }, true);
+
+    document.addEventListener('submit', async (e) => {
+        const form = e.target;
+        const confirmMsg = form.getAttribute('data-confirm');
+        if (!confirmMsg) return;
+
+        if (form.dataset.confirmed === 'true') {
+            delete form.dataset.confirmed;
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const title = form.getAttribute('data-confirm-title') || '操作确认';
+        const confirmText = form.getAttribute('data-confirm-text') || '确定';
+        const type = form.getAttribute('data-confirm-type') || 'danger';
+
+        const ok = await window.confirmModal({ title, message: confirmMsg, confirmText, type });
+        if (ok) {
+            form.dataset.confirmed = 'true';
+            form.submit();
+        }
+    }, true);
+}
+
+function openChangePasswordModal() {
+    const m = document.getElementById('change-password-modal-backdrop');
+    if (!m) return;
+    m.style.display = 'flex';
+    void m.offsetHeight;
+    m.classList.add('modal-open');
+    const input = m.querySelector('input[name="old_password"]');
+    if (input) input.focus();
+}
+
+function closeChangePasswordModal() {
+    const m = document.getElementById('change-password-modal-backdrop');
+    if (!m) return;
+    m.classList.remove('modal-open');
+    setTimeout(() => { m.style.display = 'none'; }, 180);
+}
+
+window.addEventListener('hashchange', switchConsoleTab);
+window.addEventListener('DOMContentLoaded', () => {
+    switchConsoleTab();
+    initChartInteractions();
+    initToasts();
+    initConfirmInterceptions();
+    const cpm = document.getElementById('change-password-modal-backdrop');
+    if (cpm) {
+        cpm.addEventListener('click', (e) => {
+            if (e.target === cpm) closeChangePasswordModal();
+        });
+    }
+});
+</script>
+</body>
+</html>

@@ -33,6 +33,7 @@ class FakeParser:
 
 class ApiVideoCompatibilityTest(unittest.TestCase):
     def setUp(self):
+        app.testing = True
         self.client = app.test_client()
 
     def parse_with(self, parser):

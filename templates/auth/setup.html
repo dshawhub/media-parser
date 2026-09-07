@@ -1,0 +1,4 @@
+{% extends 'base_console.html' %}{% block title %}初始化管理员{% endblock %}{% block body %}
+<main class="auth-wrap"><div class="auth-card"><div class="card"><h1 class="title">初始化管理员</h1><p class="subtitle">这是首次部署的一次性步骤。请设置一个强密码。</p>
+{% for category,message in get_flashed_messages(with_categories=true) %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="field"><label>管理员用户名</label><input name="username" minlength="3" maxlength="40" required></div><div class="field"><label>管理员密码（至少 8 位）</label><input name="password" type="password" minlength="8" required></div><div class="field"><label>确认管理员密码</label><input name="confirm_password" type="password" minlength="8" required></div><button class="btn btn-primary btn-block">创建管理员</button></form></div></div></main>{% endblock %}

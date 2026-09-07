@@ -1,785 +1,547 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN" class="scroll-smooth">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Parser - 简约高效的多平台短视频与图文无水印解析工具</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Media Parser 提供多平台视频、图文、音频解析能力与简单易用的 API 接口。">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="32x32">
+    <title>Media Parser API - 多平台媒体解析服务</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>tailwind.config={theme:{extend:{colors:{brand:'#4f46e5'},fontFamily:{sans:['Inter','ui-sans-serif','system-ui']}}}}</script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
-
-        body {
-            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #FAFAFC;
-        }
-
-        /* Ambient Glow Backgrounds */
-        .ambient-glow-1 {
-            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-        }
-
-        .ambient-glow-2 {
-            background: radial-gradient(circle at 100% 50%, rgba(168, 85, 247, 0.06) 0%, rgba(255, 255, 255, 0) 60%);
-        }
-
-        /* Custom Modern Scrollbars */
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 6px;
-            width: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #F1F5F9;
-            border-radius: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #CBD5E1;
-            border-radius: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94A3B8;
-        }
-
-        /* Glassmorphism card effects */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-        }
-
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-
-        @keyframes pulseSlow {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.85; transform: scale(1.02); }
-        }
-
-        .animate-pulse-slow {
-            animation: pulseSlow 4s ease-in-out infinite;
-        }
+        body{background:#fff}.grid-bg{background-image:linear-gradient(rgba(15,23,42,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(15,23,42,.035) 1px,transparent 1px);background-size:42px 42px}.glow{background:radial-gradient(circle,rgba(79,70,229,.1),transparent 68%)}.code-shadow{box-shadow:0 24px 70px rgba(30,41,59,.12),0 0 0 1px rgba(15,23,42,.06)}.custom-scroll::-webkit-scrollbar{width:6px;height:6px}.custom-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
     </style>
 </head>
-
-<body class="text-slate-800 antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col justify-between">
-
-    <!-- Ambient Lighting Background -->
-    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] ambient-glow-1"></div>
-        <div class="absolute top-1/3 -right-40 w-[600px] h-[600px] ambient-glow-2"></div>
-    </div>
-
-    <!-- Navigation Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-slate-200/60 transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <!-- Brand Logo -->
-            <a href="#" class="flex items-center space-x-3 group">
-                <div class="w-9 h-9 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-xs flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
-                    <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Media Parser Logo" class="w-full h-full object-contain">
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-lg font-extrabold tracking-tight text-slate-900">Media <span class="text-indigo-600">Parser</span></span>
-                </div>
-            </a>
-
-            <!-- Nav Links -->
-            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
-                <a href="#parse-section" class="hover:text-indigo-600 transition-colors">在线解析</a>
-                <a href="#platforms-section" class="hover:text-indigo-600 transition-colors">支持平台</a>
-                <a href="#features-section" class="hover:text-indigo-600 transition-colors">核心优势</a>
-                <a href="#qr-section" class="hover:text-indigo-600 transition-colors">小程序体验</a>
-            </nav>
-
-            <!-- Actions -->
-            <div class="flex items-center space-x-3">
-                <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer"
-                    class="hidden sm:inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-all border border-slate-200/80">
-                    <i class="fab fa-github text-sm"></i>
-                    <span>GitHub</span>
+<body class="font-sans text-slate-700 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+    <div class="fixed inset-0 grid-bg pointer-events-none"></div><div class="fixed -top-40 right-0 w-[620px] h-[620px] glow pointer-events-none"></div>
+    <header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto min-h-16 px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
+            <a href="#top" class="flex items-center gap-3 shrink-0" aria-label="Media Parser 首页"><img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="" class="w-9 h-9 rounded-xl border border-slate-200 bg-white p-1"><span class="hidden sm:inline font-bold tracking-tight text-slate-950">Media Parser <span class="text-brand">API</span></span></a>
+            <nav class="hidden lg:flex items-center gap-8 text-sm text-slate-600"><a href="#parser" class="hover:text-brand">在线解析</a><a href="#capabilities" class="hover:text-brand">平台能力</a><a href="#deployment" class="hover:text-brand">部署方式</a><a href="#docs" class="hover:text-brand">接入示例</a><a href="#faq" class="hover:text-brand">常见问题</a></nav>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看 Media Parser 源码" title="GitHub 开源仓库" class="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition shadow-sm">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="w-4 h-4 fill-slate-900"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.74-1.55-2.57-.3-5.27-1.29-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
+                    <span id="navStarBadge" class="hidden items-center gap-2">
+                        <span class="w-px h-3.5 bg-slate-200"></span>
+                        <span class="inline-flex items-center gap-1 font-bold text-slate-700">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="w-3.5 h-3.5 fill-amber-400 stroke-amber-500"><path d="m12 2.5 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.3l-5.8 3.06 1.11-6.46-4.7-4.58 6.49-.94L12 2.5Z" stroke-width="1"/></svg>
+                            <span id="navGithubStars"></span>
+                        </span>
+                    </span>
                 </a>
-                <button onclick="scrollToQr()"
-                    class="inline-flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all shadow-sm hover:shadow-md active:scale-95">
-                    <i class="fas fa-qrcode"></i>
-                    <span>扫码体验</span>
-                </button>
+                <a href="{{ url_for('auth.login') }}" class="hidden sm:inline text-sm font-medium text-slate-600 hover:text-brand">登录</a><a href="{{ url_for('auth.register') }}" class="rounded-lg bg-brand px-3 sm:px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition"><span class="sm:hidden">注册</span><span class="hidden sm:inline">创建账号</span></a>
             </div>
         </div>
     </header>
-
-    <!-- Main Content Area -->
-    <main class="relative z-10 flex-grow pt-24">
-
-        <!-- Hero Section -->
-        <section class="py-12 lg:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div class="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-                <!-- Left Text Column -->
-                <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
-                    <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50/80 border border-indigo-100/80 text-indigo-700 text-xs font-semibold backdrop-blur-sm">
-                        <span class="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
-                        <span>v2.5 全新引擎发布 · 覆盖全网 30+ 平台</span>
-                    </div>
-
-                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
-                        极简高清解析，<br class="hidden sm:inline">
-                        <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600">
-                            赋能短视频与图文创作。
-                        </span>
-                    </h1>
-
-                    <p class="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-                        专为内容创作者打造的高性能自动化解析工具。一键提取抖音、快手、小红书、B站等多平台无水印高清视频、图文集、背景音乐及 Live Photo 实况照片。
-                    </p>
-
-                    <!-- Hero CTA Buttons -->
-                    <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                        <a href="#parse-section"
-                            class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/35 flex items-center justify-center space-x-2 group">
-                            <span>立即使用在线解析</span>
-                            <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+    <main id="top" class="relative">
+        <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-16 lg:pt-24 pb-16">
+            <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
+                <div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="inline-flex items-center gap-2 rounded-full border {{ 'border-emerald-200 bg-emerald-50 text-emerald-700' if api_enabled else 'border-amber-200 bg-amber-50 text-amber-700' }} px-3 py-1.5 text-sm font-medium"><span class="w-2 h-2 rounded-full {{ 'bg-emerald-500 animate-pulse' if api_enabled else 'bg-amber-500' }}"></span>{{ 'API 服务正常' if api_enabled else 'API 服务维护中' }}</div>
+                        <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 transition">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="w-4 h-4 fill-slate-900"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.74-1.55-2.57-.3-5.27-1.29-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
+                            <span>Star on GitHub</span>
+                            <span id="starCountBadge" class="hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" class="w-3.5 h-3.5 fill-amber-400 stroke-amber-500"><path d="m12 2.5 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.3l-5.8 3.06 1.11-6.46-4.7-4.58 6.49-.94L12 2.5Z" stroke-width="1"/></svg>
+                                <span id="githubStars"></span>
+                            </span>
                         </a>
-                        <button onclick="scrollToQr()"
-                            class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200/90 shadow-sm flex items-center justify-center space-x-2">
-                            <i class="fab fa-weixin text-emerald-500 text-base"></i>
-                            <span>微信小程序</span>
-                        </button>
                     </div>
-
-                    <!-- Quick Stats Badges -->
-                    <div class="pt-6 border-t border-slate-200/60 flex items-center justify-center lg:justify-start space-x-8 text-slate-400 text-xs font-medium">
-                        <div class="flex items-center space-x-2">
-                            <i class="fas fa-check-circle text-emerald-500"></i>
-                            <span>无水印原画质</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <i class="fas fa-bolt text-amber-500"></i>
-                            <span>毫秒级异步提取</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <i class="fas fa-shield-alt text-indigo-500"></i>
-                            <span>免费开源无广告</span>
-                        </div>
-                    </div>
+                    <h1 class="mt-7 text-4xl sm:text-5xl lg:text-6xl leading-[1.1] font-black tracking-[-.045em] text-slate-950">多平台媒体解析，<br><span class="text-brand">一个接口就够了。</span></h1>
+                    <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-600">输入任意支持平台的分享链接，统一获取视频、图集、封面、音频与作者信息。无需浏览器环境，既可在线使用，也可通过 API 接入你的业务。</p>
+                    <div class="mt-8 flex flex-wrap items-center gap-4"><a href="#parser" class="rounded-xl bg-brand px-6 py-3 font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">立即在线解析</a><a href="#docs" class="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-800 hover:border-indigo-300 hover:text-brand transition">查看 API 示例</a></div>
+                    <div class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-500"><span>✓ 统一 JSON 返回</span><span>✓ API Key 鉴权</span><span>✓ 独立 QPS 限制</span></div>
                 </div>
-
-                <!-- Right Device Mockup -->
-                <div class="lg:col-span-5 flex justify-center">
-                    <div class="relative w-[270px] sm:w-[285px] h-[540px] sm:h-[560px]">
-                        <!-- Background Glow behind mockup -->
-                        <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 rounded-[2.6rem] blur-2xl transform rotate-6 scale-95"></div>
-
-                        <!-- Phone Outer Frame (Ultra-thin Bezel) -->
-                        <div class="relative w-full h-full bg-slate-900 p-2 rounded-[2.6rem] shadow-2xl shadow-slate-900/25 border-2 border-slate-800/90 animate-pulse-slow">
-                            <!-- Phone Screen Inner -->
-                            <div class="bg-white w-full h-full rounded-[2.1rem] overflow-hidden p-4 text-center flex flex-col items-center justify-between border border-slate-100/80 shadow-inner">
-                                <!-- Phone Header / Dynamic Island Notch -->
-                                <div class="w-16 h-3.5 bg-slate-950 rounded-full mb-2 shrink-0 mx-auto shadow-inner flex items-center justify-end px-1.5">
-                                    <div class="w-1.5 h-1.5 rounded-full bg-indigo-900/60"></div>
-                                </div>
-
-                                <!-- Logo Badge -->
-                                <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center p-1.5 shadow-xs border border-slate-200/70 shrink-0">
-                                    <img src="{{ url_for('static', filename='images/logo-web.png') }}" class="w-full h-full object-contain">
-                                </div>
-
-                                <!-- Title & Description -->
-                                <div class="shrink-0">
-                                    <h3 class="text-sm font-extrabold text-slate-900">媒体解析</h3>
-                                    <p class="text-[10px] text-slate-400 mt-0.5">微信小程序 · 长按或扫码进入</p>
-                                </div>
-
-                                <!-- QR Card Container -->
-                                <div class="p-2 bg-slate-50 rounded-2xl border border-slate-200/80 shadow-xs relative group shrink-0">
-                                    <img src="{{ url_for('static', filename='images/qr_code.jpg') }}" alt="WeChat Mini Program QR" class="w-34 h-34 rounded-xl object-cover mx-auto">
-                                </div>
-
-                                <!-- Dynamic Tag Badge -->
-                                <div class="inline-flex items-center space-x-1 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 shrink-0">
-                                    <i class="fas fa-mobile-alt text-[10px]"></i>
-                                    <span>随时随地 便捷解析</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="code-shadow rounded-2xl overflow-hidden border border-slate-200 bg-white">
+                    <div class="h-12 px-4 flex items-center justify-between border-b border-slate-200 bg-slate-50"><div class="flex gap-2"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="w-3 h-3 rounded-full bg-amber-400"></span><span class="w-3 h-3 rounded-full bg-emerald-400"></span></div><span class="text-xs text-slate-500 font-mono">GET /api/v1/parse</span></div>
+                    <div class="p-6 sm:p-7 font-mono text-sm leading-7 overflow-x-auto custom-scroll text-slate-700"><div><span class="text-violet-700">curl</span> <span class="text-slate-500">--get</span> <span class="text-emerald-700">'https://your-domain.com/api/v1/parse'</span> \</div><div class="pl-4"><span class="text-slate-500">--header</span> <span class="text-emerald-700">'Authorization: Bearer mp_xxx'</span> \</div><div class="pl-4"><span class="text-slate-500">--data-urlencode</span> <span class="text-emerald-700">'url=https://v.douyin.com/xxx/'</span></div><div class="my-5 border-t border-slate-200"></div><div class="text-slate-400">{</div><div class="pl-4"><span class="text-sky-700">"succ"</span>: <span class="text-indigo-700">true</span>,</div><div class="pl-4"><span class="text-sky-700">"data"</span>: {</div><div class="pl-8"><span class="text-sky-700">"platform"</span>: <span class="text-emerald-700">"抖音"</span>,</div><div class="pl-8"><span class="text-sky-700">"video_url"</span>: <span class="text-emerald-700">"https://..."</span>,</div><div class="pl-8"><span class="text-sky-700">"image_list"</span>: []</div><div class="pl-4">}</div><div class="text-slate-400">}</div></div>
                 </div>
             </div>
         </section>
+        <section id="parser" class="border-y border-slate-200 bg-slate-50/80"><div class="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+            <div class="max-w-2xl"><p class="font-mono text-sm font-semibold text-brand">LIVE PARSER</p><h2 class="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">粘贴链接，立即解析</h2><p class="mt-3 text-slate-600 text-base leading-7">支持分享短链和包含链接的完整分享文案。</p></div>
+            <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm"><label for="parseUrl" class="sr-only">媒体分享链接</label><input type="text" id="hpWebsite" name="website" style="display:none !important; opacity:0; position:absolute; left:-9999px" tabindex="-1" autocomplete="off"><textarea id="parseUrl" rows="3" maxlength="2000" placeholder="粘贴抖音、快手、小红书、B站等平台的分享链接或文案" class="w-full resize-none rounded-xl border border-slate-300 bg-slate-50 px-4 py-4 text-base leading-7 text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"></textarea><div class="mt-4 flex flex-col sm:flex-row gap-3"><button id="parseBtn" onclick="handleParse()" class="rounded-xl bg-brand px-6 py-3 font-bold text-white hover:bg-indigo-700 disabled:opacity-50 transition">开始解析</button><button onclick="pasteFromClipboard()" class="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:border-indigo-300 transition">粘贴内容</button><button onclick="clearParser()" class="rounded-xl px-6 py-3 font-semibold text-slate-500 hover:text-brand transition">清空</button></div></div>
+            <div id="loadingState" class="hidden mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600"><span class="inline-block w-5 h-5 mr-3 align-middle rounded-full border-2 border-slate-300 border-t-indigo-600 animate-spin"></span>正在识别平台并获取媒体信息…</div>
+            <div id="errorState" class="hidden mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800"><strong>解析失败</strong><p id="errorMsg" class="mt-1 text-red-600"></p></div>
 
-        <!-- Online Parse Interactive Section -->
-        <section id="parse-section" class="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto scroll-mt-20">
-            <!-- Section Header -->
-            <div class="text-center mb-8">
-                <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Live Parser</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 tracking-tight">在线无水印解析</h2>
-                <p class="text-sm text-slate-500 mt-2 max-w-lg mx-auto">支持粘贴抖音、快手、小红书、B站、微博、知乎、微信视频号、剪映等短视频或图文分享链接</p>
-            </div>
-
-            <!-- Main Input Card -->
-            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl shadow-slate-200/50 relative overflow-hidden transition-all">
-                <!-- Top Decorative Line -->
-                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-
-                <!-- Clean Textarea & Action Buttons -->
-                <div class="space-y-4">
-                    <textarea id="parseUrl" rows="3"
-                        placeholder="粘贴带链接的文本"
-                        class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all leading-relaxed custom-scrollbar shadow-xs resize-none"></textarea>
-
-                    <!-- 3 Action Buttons Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <!-- Start Parse Button (Primary Indigo) -->
-                        <button id="parseBtn" onclick="handleParse()"
-                            class="w-full py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-2">
-                            <i class="fas fa-wand-magic-sparkles text-xs"></i>
-                            <span>开始解析</span>
-                        </button>
-
-                        <!-- Paste Link Button (Soft Indigo Accent) -->
-                        <button type="button" onclick="pasteFromClipboard()"
-                            class="w-full py-3.5 px-6 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 font-bold text-sm rounded-2xl transition-all border border-indigo-100/80 flex items-center justify-center space-x-2">
-                            <i class="far fa-clipboard text-indigo-500"></i>
-                            <span>粘贴链接</span>
-                        </button>
-
-                        <!-- Clear Content Button (Neutral Slate) -->
-                        <button type="button" onclick="clearInput()"
-                            class="w-full py-3.5 px-6 bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-600 font-semibold text-sm rounded-2xl transition-all border border-slate-200/70 flex items-center justify-center space-x-2">
-                            <i class="fas fa-trash-alt text-slate-400 text-xs"></i>
-                            <span>清除内容</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Loading State -->
-                <div id="loadingState" class="hidden flex-col items-center justify-center py-12 text-slate-500">
-                    <div class="relative w-12 h-12 mb-4">
-                        <div class="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
-                        <div class="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
-                    </div>
-                    <p class="text-sm font-semibold text-slate-700">正在全力提取高清素材中...</p>
-                    <p class="text-xs text-slate-400 mt-1">异步解析多端数据，请稍候</p>
-                </div>
-
-                <!-- Result Display Area -->
-                <div id="resultState" class="hidden mt-8 pt-8 border-t border-slate-100">
-                    <div class="bg-slate-50/80 rounded-2xl p-6 border border-slate-200/70 flex flex-col md:flex-row gap-8 shadow-sm">
-                        <!-- Left Media Preview Block -->
-                        <div class="w-full md:w-5/12 shrink-0">
-                            <!-- Video/Single Cover Block -->
-                            <div id="coverBlock" class="relative rounded-2xl overflow-hidden shadow-md aspect-[3/4] bg-slate-900 group">
-                                <img id="resultCover" src="" alt="Cover Image" class="w-full h-full object-cover">
-                                <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                    <a id="resultVideoPlay" href="" target="_blank" rel="noopener noreferrer"
-                                        class="w-14 h-14 bg-white/90 text-indigo-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xl">
-                                        <i class="fas fa-play text-xl ml-1"></i>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Image Album Container (For Xiaohongshu / Douyin Note Albums) -->
-                            <div id="resultAlbum" class="hidden relative rounded-2xl overflow-hidden shadow-md aspect-[3/4] bg-slate-900 group">
-                                <div class="absolute top-3 right-3 bg-slate-900/80 text-white text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-md z-10 flex items-center space-x-1.5 border border-white/10">
-                                    <i class="fas fa-images"></i>
-                                    <span><span id="albumCount">0</span> 张图文</span>
-                                </div>
-                                <div class="flex overflow-x-auto h-full w-full snap-x snap-mandatory scroll-smooth custom-scrollbar" id="albumGrid">
-                                    <!-- Dynamic album image cards injected via JS -->
-                                </div>
-                            </div>
+            <!-- 解析结果区（支持视觉预览与 JSON 模式切换） -->
+            <div id="resultState" class="hidden mt-6 rounded-2xl border border-indigo-200 bg-white overflow-hidden shadow-sm">
+                <!-- 头部卡片：第一行 Meta/按钮，第二行 独占文案区 -->
+                <div class="p-5 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                            <span id="resultPlatform" class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brand border border-indigo-100/80"></span>
+                            <span id="resultAuthor" class="text-xs font-medium text-slate-500"></span>
                         </div>
-
-                        <!-- Right Details & Download Block -->
-                        <div class="flex-1 flex flex-col justify-between">
-                            <div class="space-y-4">
-                                <!-- Status & Platform Tags -->
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <span id="resultPlatform" class="hidden px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100"></span>
-                                    <div class="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">
-                                        <i class="fas fa-check-circle text-emerald-500"></i>
-                                        <span>解析成功</span>
-                                    </div>
-                                </div>
-
-                                <!-- Author Info -->
-                                <div id="authorInfo" class="hidden items-center space-x-3 bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs w-max max-w-full">
-                                    <img id="authorAvatar" src="" alt="Author Avatar" class="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0">
-                                    <div class="flex flex-col min-w-0 pr-2">
-                                        <span id="authorName" class="text-xs font-bold text-slate-800 truncate"></span>
-                                        <span id="authorId" class="text-[10px] text-slate-400 truncate"></span>
-                                    </div>
-                                </div>
-
-                                <!-- Result Title -->
-                                <div class="relative group">
-                                    <h3 id="resultTitle" class="text-base font-bold text-slate-900 leading-snug line-clamp-3"></h3>
-                                </div>
-
-                                <!-- Audio Container -->
-                                <div id="audioContainer" class="hidden space-y-2 p-3 bg-white rounded-xl border border-slate-200/80">
-                                    <h4 class="text-xs font-bold text-slate-700 flex items-center space-x-2">
-                                        <i class="fas fa-music text-indigo-500"></i>
-                                        <span>背景音乐 / 原声提取</span>
-                                    </h4>
-                                    <audio id="resultAudio" controls class="w-full h-10 outline-none rounded-lg"></audio>
-                                </div>
-
-                                <!-- Video List Container (For Multi-video posts) -->
-                                <div id="videoListContainer" class="hidden space-y-2">
-                                    <h4 class="text-xs font-bold text-slate-700 flex items-center space-x-2">
-                                        <i class="fas fa-film text-indigo-500"></i>
-                                        <span>多视频列表</span>
-                                    </h4>
-                                    <div id="videoList" class="flex flex-wrap gap-2"></div>
-                                </div>
-                            </div>
-
-                            <!-- Action Buttons Group -->
-                            <div class="pt-6 mt-6 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <a id="resultVideoDl" href="" target="_blank" rel="noopener noreferrer"
-                                    class="flex items-center justify-center space-x-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
-                                    <i class="fas fa-video"></i>
-                                    <span>查看/下载无水印视频</span>
-                                </a>
-                                <a id="resultCoverDl" href="" target="_blank" rel="noopener noreferrer"
-                                    class="flex items-center justify-center space-x-2 px-5 py-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300/80 rounded-xl text-xs font-bold transition-all shadow-xs">
-                                    <i class="fas fa-image"></i>
-                                    <span>查看/下载高清封面</span>
-                                </a>
-                            </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button onclick="copyCurrentJson()" class="whitespace-nowrap shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-brand transition shadow-sm flex items-center gap-1.5">
+                                <span>📋</span> 复制完整 JSON
+                            </button>
+                            <button onclick="copyAllLinks()" class="whitespace-nowrap shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-brand transition shadow-sm flex items-center gap-1.5">
+                                <span>🔗</span> 复制全部直链
+                            </button>
+                            <a id="primaryMedia" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap shrink-0 hidden rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition shadow-sm">打开原媒体 ↗</a>
                         </div>
                     </div>
-                </div>
-
-                <!-- Error Display Area -->
-                <div id="errorState" class="hidden mt-8 p-6 bg-rose-50/80 rounded-2xl border border-rose-100 text-rose-600 flex-col items-center justify-center text-center space-y-2">
-                    <i class="fas fa-exclamation-circle text-2xl text-rose-500"></i>
-                    <p id="errorMsg" class="text-sm font-semibold">解析失败，请检查链接格式或稍后重试</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Supported Platforms Section -->
-        <section id="platforms-section" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/60">
-            <div class="text-center mb-12">
-                <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Supported Platforms</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">全网主流媒体平台覆盖</h2>
-                <p class="text-sm text-slate-500 mt-2">持续跟进平台算法更新，提供高可用、稳定的解析能力</p>
-            </div>
-
-            <!-- Grid of platform badges -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center text-xs font-black">抖</div>
                     <div>
-                        <div class="text-xs font-bold text-slate-800">抖音</div>
-                        <div class="text-[10px] text-slate-400">视频/图文/Live</div>
+                        <h3 id="resultTitle" class="text-base font-semibold leading-relaxed text-slate-900 break-words max-h-40 overflow-y-auto custom-scroll"></h3>
                     </div>
                 </div>
 
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-xs font-black">小</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">小红书</div>
-                        <div class="text-[10px] text-slate-400">图文/视频/实况</div>
-                    </div>
+                <!-- 视图切换选项卡 -->
+                <div class="px-5 sm:px-7 pt-4 pb-1 flex items-center gap-6 border-b border-slate-200 text-sm font-medium">
+                    <button id="tabVisual" onclick="switchResultTab('visual')" class="py-2.5 border-b-2 border-brand text-brand font-bold transition">视觉媒体预览</button>
+                    <button id="tabJson" onclick="switchResultTab('json')" class="py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">JSON 原始结构</button>
                 </div>
 
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-black">快</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">快手</div>
-                        <div class="text-[10px] text-slate-400">高清无水印</div>
+                <!-- 视觉媒体预览区 -->
+                <div id="viewVisual" class="p-5 sm:p-7 space-y-6">
+                    <!-- 视频播放栏 -->
+                    <div id="videoContainer" class="hidden">
+                        <h4 class="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><span>🎬</span> 视频文件预览</h4>
+                        <video id="videoPlayer" controls playsinline preload="metadata" class="w-full rounded-2xl bg-black max-h-[460px] shadow-sm"></video>
                     </div>
-                </div>
 
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-pink-400 text-white flex items-center justify-center text-xs font-black">B</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">哔哩哔哩</div>
-                        <div class="text-[10px] text-slate-400">视频/音频提取</div>
+                    <!-- 背景音频播放栏 -->
+                    <div id="audioContainer" class="hidden">
+                        <h4 class="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2"><span>🎵</span> 背景音频</h4>
+                        <audio id="audioPlayer" controls class="w-full rounded-xl"></audio>
                     </div>
-                </div>
 
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-xs font-black">微</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">微信视频号</div>
-                        <div class="text-[10px] text-slate-400">无水印解析</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center text-xs font-black">博</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">微博</div>
-                        <div class="text-[10px] text-slate-400">视频/图文素材</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-black">知</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">知乎</div>
-                        <div class="text-[10px] text-slate-400">回答/视频解析</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-xs font-black">西</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">西瓜视频</div>
-                        <div class="text-[10px] text-slate-400">横屏高清内容</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-cyan-500 text-white flex items-center justify-center text-xs font-black">剪</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">剪映</div>
-                        <div class="text-[10px] text-slate-400">草稿/视频分析</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs font-black">梦</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">即梦 AI</div>
-                        <div class="text-[10px] text-slate-400">AI 生成视频提取</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-blue-500 text-white flex items-center justify-center text-xs font-black">豆</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">豆包</div>
-                        <div class="text-[10px] text-slate-400">AI 多媒体链接</div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 hover:border-indigo-300 transition-colors">
-                    <div class="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center text-xs font-black">+</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">更多平台</div>
-                        <div class="text-[10px] text-slate-400">皮皮虾/可灵/海螺等</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features Section -->
-        <section id="features-section" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/60">
-            <div class="text-center mb-12">
-                <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-600">Why Choose Us</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">专为内容创作者打造</h2>
-                <p class="text-sm text-slate-500 mt-2">拒绝繁琐与广告，提供纯粹、流畅的素材解析体验</p>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-6">
-                <!-- Feature 1 -->
-                <div class="p-8 bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all space-y-4 group">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-slate-900">极速无感提取</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        基于高并发异步架构与全网智能调度策略，短视频及图文链接秒级解析，无等待阻碍。
-                    </p>
-                </div>
-
-                <!-- Feature 2 -->
-                <div class="p-8 bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all space-y-4 group">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <i class="fas fa-photo-film"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-slate-900">全能素材解析</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        不仅支持无水印 MP4 视频，更支持 4K 原图集、Live Photo 实况动画及背景 BGM 原音提取。
-                    </p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div class="p-8 bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all space-y-4 group">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <i class="fas fa-shield-halved"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-slate-900">安全开源无界</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        核心代码全面开源，无隐私收集与恶意广告。提供 Restful API 与微信小程序端多端协同。
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Mini Program QR Section -->
-        <section id="qr-section" class="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto scroll-mt-20">
-            <div class="bg-slate-900 text-white rounded-3xl p-8 sm:p-14 relative overflow-hidden shadow-2xl">
-                <!-- Ambient circles -->
-                <div class="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl"></div>
-
-                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
-                    <div class="space-y-4 max-w-md">
-                        <span class="inline-block px-3 py-1 bg-white/10 text-indigo-300 rounded-full text-xs font-bold tracking-wide">微信小程序支持</span>
-                        <h2 class="text-3xl font-extrabold tracking-tight">手机端随时随地一键解析</h2>
-                        <p class="text-sm text-slate-300 leading-relaxed">
-                            打开微信扫描二维码即可开始使用。支持一键复制解析结果、便捷保存图片到相册及实况动图导出。
-                        </p>
-                        <div class="pt-2 text-xs text-slate-400 flex items-center justify-center md:justify-start space-x-4">
-                            <span><i class="fas fa-check text-emerald-400 mr-1"></i> 免注册登录</span>
-                            <span><i class="fas fa-check text-emerald-400 mr-1"></i> 高清原画输出</span>
+                    <!-- 高清图集网格 -->
+                    <div id="imageContainer" class="hidden">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2"><span>🖼️</span> 高清图集/封面 (<span id="imageCount">0</span>)</h4>
+                            <span class="text-xs text-slate-400">点击图片放大或悬浮复制单图直链</span>
                         </div>
+                        <div id="imageGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5"></div>
                     </div>
 
-                    <div class="bg-white p-4 rounded-2xl shadow-xl shrink-0">
-                        <img src="{{ url_for('static', filename='images/qr_code.jpg') }}" alt="WeChat Mini Program QR Code" class="w-44 h-44 rounded-xl object-cover">
-                        <p class="text-[11px] text-slate-500 font-bold text-center mt-2">微信扫码立即使用</p>
-                    </div>
+                    <!-- 无可用多媒体提示 -->
+                    <div id="emptyMediaNotice" class="hidden py-8 text-center text-slate-400 text-sm">未解析到可直观预览的多媒体资源</div>
+                </div>
+
+                <!-- JSON 结构视角 -->
+                <div id="viewJson" class="hidden p-5 sm:p-7">
+                    <pre class="rounded-2xl border border-slate-800 bg-slate-950 p-5 font-mono text-xs text-slate-200 overflow-x-auto max-h-[480px] custom-scroll leading-relaxed"><code id="jsonCode"></code></pre>
                 </div>
             </div>
-        </section>
+        </div></section>
 
-    </main>
-
-    <!-- Modern Minimalist Footer -->
-    <footer class="bg-white border-t border-slate-200/60 py-8 px-4 sm:px-6 lg:px-8 relative z-10">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <div class="flex items-center space-x-3">
-                <img src="{{ url_for('static', filename='images/logo-web.png') }}" class="w-5 h-5 rounded-md grayscale">
-                <span class="font-bold text-slate-700">Media Parser</span>
-                <span>© 2026 媒体解析去水印</span>
-            </div>
-
-            <div class="flex items-center space-x-6">
-                <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-600 transition-colors">GitHub 仓库</a>
-                <a href="/api/health" target="_blank" class="hover:text-indigo-600 transition-colors flex items-center space-x-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                    <span>API 状态</span>
-                </a>
+        <!-- 图片大图预览 Modal (Lightbox) -->
+        <div id="lightboxModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm p-4 flex flex-col items-center justify-center transition-all" onclick="closeLightbox()">
+            <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white/80 hover:text-white text-2xl font-bold bg-white/10 w-10 h-10 rounded-full flex items-center justify-center transition">&times;</button>
+            <img id="lightboxImg" src="" alt="" class="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl" onclick="event.stopPropagation()">
+            <div class="mt-4 flex items-center gap-3" onclick="event.stopPropagation()">
+                <button id="lightboxCopyBtn" onclick="copyLightboxUrl()" class="rounded-xl bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-xs font-semibold backdrop-blur-md transition">📋 复制图片链接</button>
+                <a id="lightboxOpenLink" target="_blank" rel="noopener noreferrer" class="rounded-xl bg-brand text-white px-4 py-2 text-xs font-semibold shadow-md transition">新标签页打开 ↗</a>
             </div>
         </div>
-    </footer>
 
-    <!-- Interactive Script -->
+        <section id="capabilities" class="max-w-7xl mx-auto px-5 sm:px-8 py-20"><div class="grid lg:grid-cols-[.7fr_1.3fr] gap-12 items-start"><div class="lg:sticky lg:top-28"><p class="font-mono text-sm font-semibold text-brand">ONE ENDPOINT</p><h2 class="mt-3 text-3xl sm:text-4xl font-bold text-slate-950">面向真实业务的解析能力</h2><p class="mt-4 text-slate-600 leading-7">解析器按平台独立维护，对外保持一致的数据结构。后台可随时关闭异常平台，不影响其他接口。</p></div><div class="grid sm:grid-cols-2 gap-4">
+            {% for number,title,description in [('01','多类型媒体','统一获取视频、图集、Live Photo、背景音频、封面及字幕。'),('02','密钥与限流','每位客户独立管理 API Key，支持用户级、密钥级和平台级 QPS。'),('03','状态可控制','管理员可控制全局服务和单个平台，并配置客户有效期。'),('04','调用可追踪','记录平台、响应状态、错误码和耗时，快速定位解析异常。')] %}<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="text-brand font-mono font-semibold">{{ number }}</div><h3 class="mt-8 text-xl font-bold text-slate-950">{{ title }}</h3><p class="mt-3 text-slate-600 leading-7">{{ description }}</p></article>{% endfor %}
+        </section>
+
+        <!-- 开源使用与部署方式 -->
+        <section id="deployment" class="border-t border-slate-200 bg-white">
+            <div class="max-w-7xl mx-auto px-5 sm:px-8 py-20">
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <p class="font-mono text-sm font-semibold text-brand">OPEN SOURCE & DEPLOYMENT</p>
+                    <h2 class="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">开源自部署，按实际场景使用</h2>
+                    <p class="mt-4 text-slate-600 text-base leading-7">项目代码基于 MIT 协议开放，不收取软件许可费。运行所需的服务器、网络和平台账号等资源由部署者自行准备。</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8 items-stretch">
+                    <!-- 开源自部署 -->
+                    <div class="rounded-3xl border border-slate-200 bg-white p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition">
+                        <div>
+                            <div class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">MIT LICENSE</div>
+                            <h3 class="mt-4 text-xl font-bold text-slate-950">开源自部署</h3>
+                            <p class="mt-2 text-sm text-slate-500">适用于学习研究、个人工具与自主可控的业务集成</p>
+                            <div class="mt-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-black text-slate-950">¥0</span>
+                                <span class="text-sm font-medium text-slate-500">/ 软件许可费</span>
+                            </div>
+                            <div class="my-6 border-t border-slate-100"></div>
+                            <ul class="space-y-3.5 text-sm text-slate-600">
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>完整源码与标准 JSON 接口</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>Docker Compose 一键启动</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>通过 GitHub Issues 参与社区维护</span></li>
+                            </ul>
+                        </div>
+                        <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer" class="mt-8 w-full block text-center rounded-xl border border-slate-300 bg-white py-3 px-4 font-bold text-slate-800 hover:border-brand hover:text-brand transition">查看源码与部署文档</a>
+                    </div>
+
+                    <!-- 团队内部 API 服务 -->
+                    <div class="relative rounded-3xl border-2 border-brand bg-white p-8 flex flex-col justify-between shadow-xl ring-1 ring-brand/10">
+                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-brand px-3.5 py-1 text-xs font-bold text-white shadow-sm">内置能力</div>
+                        <div>
+                            <div class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brand">SELF-HOSTED API</div>
+                            <h3 class="mt-4 text-xl font-bold text-slate-950">团队内部服务</h3>
+                            <p class="mt-2 text-sm text-slate-500">适合将解析能力部署为团队或业务系统的内部 API</p>
+                            <div class="mt-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-black text-brand">自主配置</span>
+                                <span class="text-sm font-medium text-slate-500">/ 本地管理</span>
+                            </div>
+                            <div class="my-6 border-t border-slate-100"></div>
+                            <ul class="space-y-3.5 text-sm text-slate-600">
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>账号、有效期与解析积分管理</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>用户、API Key 与平台三级 QPS 控制</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>服务开关、调用日志与用量统计</span></li>
+                            </ul>
+                        </div>
+                        <a href="#docs" class="mt-8 w-full block text-center rounded-xl bg-brand py-3 px-4 font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">查看 API 接入方式</a>
+                    </div>
+
+                    <!-- 使用边界 -->
+                    <div class="rounded-3xl border border-slate-200 bg-white p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition">
+                        <div>
+                            <div class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">RESPONSIBILITY</div>
+                            <h3 class="mt-4 text-xl font-bold text-slate-950">资源与合规</h3>
+                            <p class="mt-2 text-sm text-slate-500">实际可用性取决于部署环境、目标平台状态及必要的账号配置</p>
+                            <div class="mt-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-black text-slate-950">自行负责</span>
+                                <span class="text-sm font-medium text-slate-500">/ 部署运维</span>
+                            </div>
+                            <div class="my-6 border-t border-slate-100"></div>
+                            <ul class="space-y-3.5 text-sm text-slate-600">
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>自行承担服务器与网络成本</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>部分平台能力可能需要配置 Cookie</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>遵守目标平台规则及当地法律法规</span></li>
+                            </ul>
+                        </div>
+                        <a href="https://github.com/ucmao/media-parser#%EF%B8%8F-%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE--%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E" target="_blank" rel="noopener noreferrer" class="mt-8 w-full block text-center rounded-xl border border-slate-300 bg-white py-3 px-4 font-bold text-slate-800 hover:border-slate-400 transition">查看协议与免责声明</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="docs" class="border-t border-slate-200 bg-slate-50"><div class="max-w-7xl mx-auto px-5 sm:px-8 py-20 grid lg:grid-cols-2 gap-12 items-center"><div><p class="font-mono text-sm font-semibold text-brand">QUICK START</p><h2 class="mt-3 text-3xl sm:text-4xl font-bold text-slate-950">GET 接口，小白也能用</h2><p class="mt-4 text-slate-600 leading-7">注册并由管理员开通有效期后，在控制台创建 API Key。推荐使用请求头传递密钥，也兼容直接放入查询参数。</p><div class="mt-7 flex gap-3"><a href="{{ url_for('auth.register') }}" class="rounded-xl bg-brand px-5 py-3 font-bold text-white">注册账号</a><a href="{{ url_for('auth.login') }}" class="rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-800">进入控制台</a></div></div><div class="rounded-2xl border border-slate-200 bg-white p-6 font-mono text-sm leading-7 overflow-x-auto custom-scroll shadow-sm"><p class="text-slate-500"># 最简单的 URL 调用方式</p><p class="mt-2 whitespace-nowrap"><span class="text-sky-700">GET</span> /api/v1/parse?<span class="text-brand">key</span>=mp_xxx&amp;<span class="text-brand">url</span>=分享链接</p><div class="my-5 border-t border-slate-200"></div><p class="text-slate-500"># 推荐：密钥放在请求头</p><p class="mt-2 text-emerald-700">Authorization: Bearer mp_xxx</p></div></div></section>
+
+        <!-- 常见问题 FAQ 板块 -->
+        <section id="faq" class="border-t border-slate-200 bg-white">
+            <div class="max-w-5xl mx-auto px-5 sm:px-8 py-20">
+                <div class="text-center max-w-2xl mx-auto mb-14">
+                    <p class="font-mono text-sm font-semibold text-brand">FREQUENTLY ASKED QUESTIONS</p>
+                    <h2 class="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">常见问题解答</h2>
+                    <p class="mt-3 text-slate-600 leading-7">解答你在对接与使用 Media Parser API 过程中的常见疑问。</p>
+                </div>
+
+                <div class="space-y-4">
+                    <details class="group rounded-2xl border border-slate-200 bg-slate-50/50 p-6 [&_summary::-webkit-details-marker]:hidden transition-all duration-200 hover:border-indigo-200 hover:bg-white" open>
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>解析出来的视频和图集是高清无水印的吗？</span>
+                            <span class="ml-4 shrink-0 rounded-full bg-slate-100 p-1.5 text-slate-500 group-open:-rotate-180 group-open:bg-indigo-50 group-open:text-brand transition-all duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-7 text-sm sm:text-base border-t border-slate-100 pt-4">
+                            Media Parser 会尽量返回目标平台当前可获取的原始媒体地址，不主动对资源进行二次压缩。实际清晰度和水印情况取决于作品、平台接口、登录状态及平台后续调整，无法对所有链接作统一保证。
+                        </p>
+                    </details>
+
+                    <details class="group rounded-2xl border border-slate-200 bg-slate-50/50 p-6 [&_summary::-webkit-details-marker]:hidden transition-all duration-200 hover:border-indigo-200 hover:bg-white">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>提取出的音视频/图片直链会过期或遭遇防盗链吗？</span>
+                            <span class="ml-4 shrink-0 rounded-full bg-slate-100 p-1.5 text-slate-500 group-open:-rotate-180 group-open:bg-indigo-50 group-open:text-brand transition-all duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-7 text-sm sm:text-base border-t border-slate-100 pt-4">
+                            可能会。媒体地址通常由目标平台的 CDN 提供，可能包含时效签名、登录校验或防盗链策略，具体有效期由平台决定。对于拥有合法保存权且需要持久化的内容，请在解析后及时转存到自己的存储服务。
+                        </p>
+                    </details>
+
+                    <details class="group rounded-2xl border border-slate-200 bg-slate-50/50 p-6 [&_summary::-webkit-details-marker]:hidden transition-all duration-200 hover:border-indigo-200 hover:bg-white">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>遇到目标平台改版导致解析失败怎么办？</span>
+                            <span class="ml-4 shrink-0 rounded-full bg-slate-100 p-1.5 text-slate-500 group-open:-rotate-180 group-open:bg-indigo-50 group-open:text-brand transition-all duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-7 text-sm sm:text-base border-t border-slate-100 pt-4">
+                            请先更新到项目最新版本，并检查该平台是否需要 Cookie 等额外配置。如果问题仍然存在，可携带脱敏后的示例链接和错误日志提交 GitHub Issue。开源自部署实例不会自动热更新，升级前请先在自己的环境中验证。
+                        </p>
+                    </details>
+
+                    <details class="group rounded-2xl border border-slate-200 bg-slate-50/50 p-6 [&_summary::-webkit-details-marker]:hidden transition-all duration-200 hover:border-indigo-200 hover:bg-white">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>如何获取和配置 API Key？</span>
+                            <span class="ml-4 shrink-0 rounded-full bg-slate-100 p-1.5 text-slate-500 group-open:-rotate-180 group-open:bg-indigo-50 group-open:text-brand transition-all duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-7 text-sm sm:text-base border-t border-slate-100 pt-4">
+                            自部署后，首次访问 <code class="font-mono text-sm">/auth/setup</code> 创建管理员。用户登录控制台后可以创建和管理自己的 API Key；调用接口时推荐使用 <code class="font-mono text-sm">Authorization: Bearer mp_xxx</code>，也兼容 <code class="font-mono text-sm">?key=mp_xxx</code> 查询参数。
+                        </p>
+                    </details>
+
+                    <details class="group rounded-2xl border border-slate-200 bg-slate-50/50 p-6 [&_summary::-webkit-details-marker]:hidden transition-all duration-200 hover:border-indigo-200 hover:bg-white">
+                        <summary class="flex items-center justify-between cursor-pointer font-bold text-slate-900 text-lg">
+                            <span>QPS、有效期和解析积分如何配置？</span>
+                            <span class="ml-4 shrink-0 rounded-full bg-slate-100 p-1.5 text-slate-500 group-open:-rotate-180 group-open:bg-indigo-50 group-open:text-brand transition-all duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </span>
+                        </summary>
+                        <p class="mt-4 text-slate-600 leading-7 text-sm sm:text-base border-t border-slate-100 pt-4">
+                            这些限制均由自部署实例的管理员配置，并非固定商业套餐。默认新用户试用期为 7 天、初始积分为 100、账号限制为 2 QPS；管理员可在后台调整。触发 QPS 限制时返回 429，积分耗尽时返回 402，账号未开通或过期时返回 403。
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+    <!-- 浮动气泡提示容器 (Landing Toast Notification) -->
+    <div id="landingToastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2.5 pointer-events-none w-auto max-w-[90vw]"></div>
+
+    <footer class="border-t border-slate-200 bg-white"><div class="max-w-7xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row gap-4 justify-between text-sm text-slate-500"><div class="flex items-center gap-3"><img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="" class="w-7 h-7 rounded-lg border border-slate-200 bg-white p-1"><span>Media Parser API · 多平台媒体解析服务</span></div><div class="flex gap-6"><a class="hover:text-brand" href="/api/health">服务状态</a><a class="hover:text-brand" href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer">GitHub</a></div></div></footer>
     <script>
-        function scrollToQr() {
-            document.getElementById('qr-section').scrollIntoView({ behavior: 'smooth' });
+        const input=document.getElementById('parseUrl');
+        let lastParsedData = null;
+        let activeLightboxUrl = '';
+
+        function showToast(message, type = 'success', duration = 3000) {
+            const container = document.getElementById('landingToastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const isError = type === 'error';
+            const isWarning = type === 'warning';
+            const bgClass = isError ? 'bg-red-50 text-red-700 border-red-200' : isWarning ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
+            const icon = isError ? '❌' : isWarning ? '⚠️' : '✅';
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-lg text-sm font-medium transition-all duration-300 transform -translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('-translate-y-2', 'opacity-0');
+            });
+            setTimeout(() => {
+                toast.classList.add('-translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
         }
 
-        function setExampleUrl(url) {
-            const input = document.getElementById('parseUrl');
-            input.value = url;
-            input.focus();
-        }
-
-        function clearInput() {
-            const input = document.getElementById('parseUrl');
-            input.value = '';
-            input.focus();
-        }
-
-        async function pasteFromClipboard() {
+        function clearParser(){input.value='';input.focus()}
+        async function pasteFromClipboard(){
             try {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    document.getElementById('parseUrl').value = text;
-                }
-            } catch (err) {
-                alert('请允许剪贴板读取权限或直接手动粘贴');
+                input.value = await navigator.clipboard.readText();
+                input.focus();
+                showToast('已从剪贴板粘贴内容', 'success', 2000);
+            } catch {
+                showToast('无法直接读取剪贴板，请使用快捷键 Ctrl+V / ⌘+V 粘贴', 'warning', 3500);
             }
         }
 
-        async function handleParse() {
-            const urlInput = document.getElementById('parseUrl').value.trim();
-            const loadingState = document.getElementById('loadingState');
-            const resultState = document.getElementById('resultState');
-            const errorState = document.getElementById('errorState');
-            const parseBtn = document.getElementById('parseBtn');
-
-            if (!urlInput) {
-                alert('请输入或粘贴视频/图文链接！');
-                return;
-            }
-
-            // UI Reset
-            resultState.classList.add('hidden');
-            errorState.classList.add('hidden');
-            loadingState.classList.remove('hidden');
-            loadingState.classList.add('flex');
-            parseBtn.disabled = true;
-            parseBtn.classList.add('opacity-70', 'cursor-not-allowed');
-
-            try {
-                const response = await fetch('/api/parse', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: urlInput })
+        function copyText(text, successMsg){
+            if(!text) return;
+            if(navigator.clipboard && navigator.clipboard.writeText){
+                navigator.clipboard.writeText(text).then(()=>{
+                    showToast(successMsg || '已复制到剪贴板', 'success');
+                }).catch(()=>{
+                    fallbackCopy(text, successMsg);
                 });
-
-                const res = await response.json();
-
-                loadingState.classList.add('hidden');
-                loadingState.classList.remove('flex');
-
-                if (response.ok && res.succ) {
-                    // Update Platform tag
-                    const platformEl = document.getElementById('resultPlatform');
-                    if (res.data.platform) {
-                        platformEl.innerText = res.data.platform;
-                        platformEl.classList.remove('hidden');
-                        platformEl.classList.add('inline-flex');
-                    } else {
-                        platformEl.classList.add('hidden');
-                        platformEl.classList.remove('inline-flex');
-                    }
-
-                    // Update Author Info
-                    const authorInfo = document.getElementById('authorInfo');
-                    if (res.data.author && res.data.author.nickname) {
-                        document.getElementById('authorName').innerText = res.data.author.nickname;
-                        const authorIdEl = document.getElementById('authorId');
-                        if (res.data.author.author_id) {
-                            authorIdEl.innerText = 'ID: ' + res.data.author.author_id;
-                            authorIdEl.classList.remove('hidden');
-                        } else {
-                            authorIdEl.classList.add('hidden');
-                        }
-
-                        document.getElementById('authorAvatar').src = res.data.author.avatar || "{{ url_for('static', filename='images/logo-web.png') }}";
-                        authorInfo.classList.remove('hidden');
-                        authorInfo.classList.add('flex');
-                    } else {
-                        authorInfo.classList.add('hidden');
-                        authorInfo.classList.remove('flex');
-                    }
-
-                    // Cover & Title
-                    document.getElementById('resultCover').src = res.data.cover_url || "{{ url_for('static', filename='images/default-cover.png') }}";
-                    document.getElementById('resultTitle').innerText = res.data.title || '无标题素材';
-
-                    // Video Links
-                    const videoDlBtn = document.getElementById('resultVideoDl');
-                    const videoPlayBtn = document.getElementById('resultVideoPlay');
-                    if (res.data.video_url) {
-                        videoDlBtn.href = res.data.video_url;
-                        videoPlayBtn.href = res.data.video_url;
-                        videoPlayBtn.parentElement.classList.remove('hidden');
-                        videoDlBtn.style.display = 'flex';
-                    } else {
-                        videoPlayBtn.parentElement.classList.add('hidden');
-                        videoDlBtn.style.display = 'none';
-                    }
-
-                    // Multi-video List
-                    const videoListContainer = document.getElementById('videoListContainer');
-                    const videoList = document.getElementById('videoList');
-                    videoList.innerHTML = '';
-                    if (res.data.video_list && res.data.video_list.length > 1) {
-                        res.data.video_list.forEach((videoUrl, index) => {
-                            const link = document.createElement('a');
-                            link.href = videoUrl;
-                            link.target = '_blank';
-                            link.rel = 'noopener noreferrer';
-                            link.className = 'inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-100 hover:bg-indigo-100 transition-colors';
-                            link.innerHTML = `<i class="fas fa-play-circle text-indigo-500"></i><span>视频 ${index + 1}</span>`;
-                            videoList.appendChild(link);
-                        });
-                        videoListContainer.classList.remove('hidden');
-                    } else {
-                        videoListContainer.classList.add('hidden');
-                    }
-
-                    // Audio Container
-                    const audioContainer = document.getElementById('audioContainer');
-                    const resultAudio = document.getElementById('resultAudio');
-                    if (res.data.audio_url) {
-                        resultAudio.src = res.data.audio_url;
-                        audioContainer.classList.remove('hidden');
-                        audioContainer.classList.add('block');
-                    } else {
-                        resultAudio.src = '';
-                        audioContainer.classList.add('hidden');
-                        audioContainer.classList.remove('block');
-                    }
-
-                    // Album Images Container
-                    const albumContainer = document.getElementById('resultAlbum');
-                    const albumGrid = document.getElementById('albumGrid');
-                    const coverBlock = document.getElementById('coverBlock');
-
-                    albumGrid.innerHTML = '';
-                    if (res.data.image_list && res.data.image_list.length > 0) {
-                        document.getElementById('albumCount').innerText = res.data.image_list.length;
-                        res.data.image_list.forEach((item, idx) => {
-                            let imgUrl = item;
-                            let livePhotoUrl = null;
-                            if (typeof item === 'object' && item !== null) {
-                                imgUrl = item.url;
-                                livePhotoUrl = item.live_photo_url;
-                            }
-
-                            const imgContainer = document.createElement('div');
-                            imgContainer.className = 'w-full h-full shrink-0 flex-none snap-center relative';
-
-                            let innerHtml = `<a href="${imgUrl}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative group">
-                                <img src="${imgUrl}" class="w-full h-full object-cover">
-                                <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white backdrop-blur-[2px] space-y-2">
-                                    <i class="fas fa-expand text-2xl drop-shadow-md"></i>
-                                    <span class="text-xs font-bold bg-black/60 px-3 py-1 rounded-full border border-white/20">查看原图 (${idx + 1}/${res.data.image_list.length})</span>
-                                </div>
-                            </a>`;
-
-                            if (livePhotoUrl) {
-                                innerHtml += `<a href="${livePhotoUrl}" target="_blank" rel="noopener noreferrer" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600/90 hover:bg-indigo-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-lg backdrop-blur-md flex items-center space-x-1.5 transition-transform hover:scale-105 z-10 w-max border border-white/20">
-                                    <i class="fas fa-video text-xs"></i>
-                                    <span>获取 Live Photo 动图</span>
-                                </a>`;
-                                innerHtml += `<div class="absolute top-4 left-4 bg-slate-950/70 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[10px] font-bold border border-white/20 shadow-sm flex items-center space-x-1 z-10 pointer-events-none">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    <span>Live Photo</span>
-                                </div>`;
-                            }
-
-                            imgContainer.innerHTML = innerHtml;
-                            albumGrid.appendChild(imgContainer);
-                        });
-                        coverBlock.classList.add('hidden');
-                        albumContainer.classList.remove('hidden');
-                        albumContainer.classList.add('flex');
-                    } else {
-                        coverBlock.classList.remove('hidden');
-                        albumContainer.classList.add('hidden');
-                        albumContainer.classList.remove('flex');
-                    }
-
-                    document.getElementById('resultCoverDl').href = res.data.cover_url || '#';
-
-                    resultState.classList.remove('hidden');
-                    resultState.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                } else {
-                    document.getElementById('errorMsg').innerText = res.retdesc || '解析失败，请检查链接格式是否正确或稍后重试';
-                    errorState.classList.remove('hidden');
-                    errorState.classList.add('flex');
-                }
-            } catch (err) {
-                loadingState.classList.add('hidden');
-                loadingState.classList.remove('flex');
-                document.getElementById('errorMsg').innerText = '网络异常，请检查网络连接或稍后重试';
-                errorState.classList.remove('hidden');
-                errorState.classList.add('flex');
-            } finally {
-                parseBtn.disabled = false;
-                parseBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            } else {
+                fallbackCopy(text, successMsg);
             }
         }
+
+        function fallbackCopy(text, successMsg){
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                ta.style.top = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if(ok){
+                    showToast(successMsg || '已复制到剪贴板', 'success');
+                    return;
+                }
+            } catch(e){}
+            showToast('复制失败，请手动选择复制', 'error');
+        }
+
+        function copyCurrentJson(){
+            if(lastParsedData){
+                copyText(JSON.stringify(lastParsedData, null, 2), '已复制完整 API 返回 JSON 数据');
+            }
+        }
+
+        function copyAllLinks(){
+            if(!lastParsedData) return;
+            const links = [];
+            if(lastParsedData.video_url) links.push(lastParsedData.video_url);
+            (lastParsedData.video_list||[]).forEach(u=>links.push(u));
+            if(lastParsedData.audio_url) links.push(lastParsedData.audio_url);
+            if(lastParsedData.cover_url) links.push(lastParsedData.cover_url);
+            (lastParsedData.image_list||[]).forEach(item=>{
+                if(typeof item === 'string') links.push(item);
+                else if(item && item.url) {
+                    links.push(item.url);
+                    if(item.live_photo_url) links.push(item.live_photo_url);
+                }
+            });
+            if(links.length > 0){
+                copyText(links.join('\n'), `已复制全部 ${links.length} 个媒体直链！`);
+            } else {
+                showToast('未找到可复制的媒体链接', 'warning');
+            }
+        }
+
+        function switchResultTab(tab){
+            const btnVisual = document.getElementById('tabVisual');
+            const btnJson = document.getElementById('tabJson');
+            const viewVisual = document.getElementById('viewVisual');
+            const viewJson = document.getElementById('viewJson');
+            if(tab === 'visual'){
+                btnVisual.className = 'py-2.5 border-b-2 border-brand text-brand font-bold transition';
+                btnJson.className = 'py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition';
+                viewVisual.classList.remove('hidden');
+                viewJson.classList.add('hidden');
+            } else {
+                btnJson.className = 'py-2.5 border-b-2 border-brand text-brand font-bold transition';
+                btnVisual.className = 'py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition';
+                viewJson.classList.remove('hidden');
+                viewVisual.classList.add('hidden');
+            }
+        }
+
+        function openLightbox(url){
+            activeLightboxUrl = url;
+            const modal = document.getElementById('lightboxModal');
+            const img = document.getElementById('lightboxImg');
+            const openLink = document.getElementById('lightboxOpenLink');
+            img.src = url;
+            openLink.href = url;
+            modal.classList.remove('hidden');
+        }
+
+        function closeLightbox(){
+            document.getElementById('lightboxModal').classList.add('hidden');
+            document.getElementById('lightboxImg').src = '';
+        }
+
+        function copyLightboxUrl(){
+            if(activeLightboxUrl){
+                copyText(activeLightboxUrl, '已复制大图链接');
+            }
+        }
+
+        function renderResult(data){
+            lastParsedData = data;
+            document.getElementById('resultPlatform').textContent = data.platform || '未知平台';
+            document.getElementById('resultTitle').textContent = data.title || '未获取到标题';
+            const author = data.author && (data.author.nickname || data.author.author_id);
+            document.getElementById('resultAuthor').textContent = author ? `作者：${data.author.nickname || data.author.author_id}` : '';
+
+            const primary = document.getElementById('primaryMedia');
+            const mainUrl = data.video_url || data.audio_url || data.cover_url;
+            if(mainUrl){
+                primary.href = mainUrl;
+                primary.classList.remove('hidden');
+            } else {
+                primary.classList.add('hidden');
+            }
+
+            // 1. 视频渲染
+            const videoContainer = document.getElementById('videoContainer');
+            const videoPlayer = document.getElementById('videoPlayer');
+            if(data.video_url){
+                videoPlayer.src = data.video_url;
+                videoContainer.classList.remove('hidden');
+            } else {
+                videoPlayer.pause();
+                videoPlayer.src = '';
+                videoContainer.classList.add('hidden');
+            }
+
+            // 2. 音频渲染
+            const audioContainer = document.getElementById('audioContainer');
+            const audioPlayer = document.getElementById('audioPlayer');
+            if(data.audio_url){
+                audioPlayer.src = data.audio_url;
+                audioContainer.classList.remove('hidden');
+            } else {
+                audioPlayer.pause();
+                audioPlayer.src = '';
+                audioContainer.classList.add('hidden');
+            }
+
+            // 3. 图片网格渲染
+            const imageContainer = document.getElementById('imageContainer');
+            const imageGrid = document.getElementById('imageGrid');
+            const imageCount = document.getElementById('imageCount');
+            imageGrid.replaceChildren();
+
+            const imageList = [];
+            if(data.cover_url) imageList.push({ label: '封面', url: data.cover_url });
+            (data.image_list || []).forEach((item, idx) => {
+                if(typeof item === 'string') imageList.push({ label: `图片 ${idx + 1}`, url: item });
+                else if(item && item.url) imageList.push({ label: `图片 ${idx + 1}`, url: item.url, livePhoto: item.live_photo_url });
+            });
+
+            if(imageList.length > 0){
+                imageCount.textContent = imageList.length;
+                imageList.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-sm cursor-pointer';
+
+                    const img = document.createElement('img');
+                    img.src = item.url;
+                    img.loading = 'lazy';
+                    img.className = 'w-full h-full object-cover transition duration-300 group-hover:scale-105';
+                    img.onclick = () => openLightbox(item.url);
+
+                    const badge = document.createElement('span');
+                    badge.className = 'absolute top-2 left-2 rounded-md bg-slate-900/65 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md';
+                    badge.textContent = item.label;
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center gap-2 p-2';
+
+                    const btnZoom = document.createElement('button');
+                    btnZoom.className = 'rounded-xl bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-800 shadow hover:bg-white transition flex items-center gap-1';
+                    btnZoom.innerHTML = '<span>🔍</span> 放大';
+                    btnZoom.onclick = (e) => { e.stopPropagation(); openLightbox(item.url); };
+
+                    const btnCopy = document.createElement('button');
+                    btnCopy.className = 'rounded-xl bg-white/90 p-1.5 text-xs font-bold text-slate-800 shadow hover:bg-white transition';
+                    btnCopy.innerHTML = '📋';
+                    btnCopy.title = '复制直链';
+                    btnCopy.onclick = (e) => { e.stopPropagation(); copyText(item.url, '已复制单图直链'); };
+
+                    overlay.append(btnZoom, btnCopy);
+                    card.append(img, badge, overlay);
+                    imageGrid.appendChild(card);
+                });
+                imageContainer.classList.remove('hidden');
+            } else {
+                imageContainer.classList.add('hidden');
+            }
+
+            // 4. 无资源提示
+            const emptyNotice = document.getElementById('emptyMediaNotice');
+            if(!data.video_url && !data.audio_url && imageList.length === 0){
+                emptyNotice.classList.remove('hidden');
+            } else {
+                emptyNotice.classList.add('hidden');
+            }
+
+            // 5. JSON 数据渲染
+            document.getElementById('jsonCode').textContent = JSON.stringify(data, null, 2);
+
+            // 显示结果区并默认显示视觉预览 Tab
+            switchResultTab('visual');
+            document.getElementById('resultState').classList.remove('hidden');
+        }
+
+        async function handleParse(){const text=input.value.trim(),button=document.getElementById('parseBtn'),loading=document.getElementById('loadingState'),error=document.getElementById('errorState'),result=document.getElementById('resultState');if(!text||button.disabled){if(!text)input.focus();return}button.disabled=true;loading.classList.remove('hidden');error.classList.add('hidden');result.classList.add('hidden');const hpWebsite=document.getElementById('hpWebsite')?.value||'';try{const response=await fetch('/api/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,website:hpWebsite})});const payload=await response.json();if(response.ok&&payload.succ){renderResult(payload.data);result.scrollIntoView({behavior:'smooth',block:'nearest'})}else{document.getElementById('errorMsg').textContent=payload.retdesc||'请检查链接后重试';error.classList.remove('hidden')}}catch{document.getElementById('errorMsg').textContent='网络异常，请稍后重试';error.classList.remove('hidden')}finally{loading.classList.add('hidden');let countdown=3;const originalText='开始解析';button.textContent=`请稍候 (${countdown}s)`;const timer=setInterval(()=>{countdown--;if(countdown>0){button.textContent=`请稍候 (${countdown}s)`}else{clearInterval(timer);button.disabled=false;button.textContent=originalText}},1000)}}
+        input.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key==='Enter')handleParse()});
+        fetch('https://api.github.com/repos/ucmao/media-parser',{headers:{Accept:'application/vnd.github+json'}}).then(res=>res.ok?res.json():Promise.reject()).then(repo=>{if(repo&&repo.stargazers_count!==undefined){const countStr=new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(repo.stargazers_count);const el=document.getElementById('githubStars'),badge=document.getElementById('starCountBadge');if(el)el.textContent=countStr;if(badge){badge.classList.remove('hidden');badge.classList.add('inline-flex')}const navEl=document.getElementById('navGithubStars'),navBadge=document.getElementById('navStarBadge');if(navEl)navEl.textContent=countStr;if(navBadge){navBadge.classList.remove('hidden');navBadge.classList.add('inline-flex')}}}).catch(()=>{});
     </script>
 </body>
-
 </html>

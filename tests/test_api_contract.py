@@ -7,6 +7,7 @@ from src.api.parse import _fetch_with_retry, safe_execute
 
 class ApiContractTest(unittest.TestCase):
     def setUp(self):
+        app.testing = True
         self.client = app.test_client()
 
     def test_health_check(self):
@@ -18,6 +19,15 @@ class ApiContractTest(unittest.TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Media Parser", response.get_data(as_text=True))
+        self.assertIn("多平台媒体解析", response.get_data(as_text=True))
+        self.assertIn("githubStars", response.get_data(as_text=True))
+        self.assertIn("api.github.com/repos/ucmao/media-parser", response.get_data(as_text=True))
+        self.assertIn("开源自部署", response.get_data(as_text=True))
+        self.assertNotIn("套餐资费", response.get_data(as_text=True))
+        self.assertNotIn("SLA 99.9%", response.get_data(as_text=True))
+        self.assertNotIn("绝对保证", response.get_data(as_text=True))
+        self.assertNotIn("小程序", response.get_data(as_text=True))
+        self.assertNotIn("qr_code", response.get_data(as_text=True))
 
     @staticmethod
     def parser(**overrides):
@@ -164,6 +174,22 @@ class ApiContractTest(unittest.TestCase):
             safe_execute(Mock(side_effect=RuntimeError("boom")), default=[]),
             [],
         )
+
+    def test_api_response_includes_tip_payload(self):
+        response = self.client.get("/api/health")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["status"], "ok")
+
+        # Test make_response contract
+        from src.api.response import make_response
+        with app.test_request_context():
+            res = make_response(200, "ok", {"foo": "bar"}, True)
+            data = res.get_json()
+            self.assertIn("_tip", data)
+            self.assertEqual(data["_tip"]["author"], "ucmao")
+            self.assertEqual(data["_tip"]["website"], "https://github.com/ucmao/media-parser")
+            self.assertEqual(data["_tip"]["notice"], "本接口由开源项目 media-parser 提供服务")
 
 
 if __name__ == "__main__":

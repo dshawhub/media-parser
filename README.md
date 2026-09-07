@@ -15,7 +15,7 @@
 <a href="#-联系作者">联系作者</a>
 </p>
 
-媒体解析去水印是一款专为短视频创作者与开发者打造的**100%原生本地解析工具**。
+Media-Parser是一款专为短视频创作者与开发者打造的**100%原生本地解析工具**。
 
 通过“智能识别 -> 本地抓取 -> 提取地址 -> 快捷下载”的闭环，助你高效获取无水印素材。
 
@@ -30,7 +30,8 @@
 * **极速轻量**：纯 HTTP 网络协议与底层算法逆向，免启动 Chromium/Playwright 等笨重浏览器，内存占用极低（<100MB），毫秒级极速响应。
 * **原生自主**：100% 本地代码闭环抓取，零外部商用 API 或第三方代解析依赖，数据链路自主可控，杜绝断流与隐私泄露风险。
 * **插件化解耦**：内置 `ParserFactory` 模块自动发现与工厂分发机制，50 个平台独立解耦，遵循统一的数据契约，新增与维护平台极度轻松。
-* **开箱即用**：提供标准 RESTful JSON 接口与 Web 体验页，无外部数据库等冗余依赖，Docker Compose 一键构建，轻松无缝接入各类业务系统。
+* **开箱即用**：提供标准 JSON 接口、Web 体验页与轻量运营控制台，默认内置 SQLite，Docker Compose 一键构建。
+* **访问控制**：支持客户注册、管理员配置有效期与积分、API Key 管理、全局与单平台开关、用户总量/单个密钥/平台全局三级 QPS 限流和调用日志。
 
 ---
 
@@ -97,7 +98,7 @@
 
 ### Cookie 配置（Docker 与 Python 环境运行通用）
 
-大多数平台无需登录态即可解析；如需按需增强部分特定功能（如豆包无水印视频、微信视频号等），请先复制环境变量示例文件：
+大多数平台无需登录态即可解析，如需按需增强以下特定功能，请先复制环境变量示例文件：
 
 ```bash
 cp .env.example .env
@@ -132,11 +133,13 @@ docker-compose logs -f web
 
 服务默认监听 `8051` 端口，启动后直接访问 [http://localhost:8051](http://localhost:8051)。
 
+首次部署请访问 `http://localhost:8051/auth/setup` 创建管理员，该入口会在管理员创建后自动关闭。用户、API Key、系统配置和自动生成的安全密钥均保存在 `./data` 目录，请务必持久化该目录。
+
 ---
 
 ### Python 环境运行
 
-适用于调试、二次开发或直接在宿主机运行。推荐 **Python 3.10+**（兼容 Python 3.8+）；如需解析豆包或视频号视频，请先按上方说明配置 `.env`。
+适用于调试、二次开发或直接在宿主机运行。推荐 **Python 3.10+**；如需解析豆包或视频号视频，请先按上方说明配置 `.env`。
 
 ```bash
 # 1. 安装依赖
@@ -150,17 +153,31 @@ python app.py
 
 ## 🔌 API 核心接口说明
 
-* **接口路径**：`POST /api/parse`
-* **接口描述**：传入包含分享链接的文本，智能提取多媒体直链与图文信息。
+### 客户 GET 简单接口（推荐）
 
-### 请求参数 (Request Body)
-格式: `application/json`
+* **接口路径**：`GET /api/v1/parse`
+* **参数**：`url`，视频或图文分享链接
+* **鉴权**：推荐 `Authorization: Bearer mp_xxx`；为方便小白，也兼容查询参数 `key=mp_xxx`
 
-| 参数名 | 类型 | 必填 | 描述 | 限制与示例 |
-| --- | --- | --- | --- | --- |
-| `text` | `string` | 是 | 视频分享链接或包含链接的文本短语 | 最长 2000 字符，如 `"https://v.douyin.com/..."` |
+```bash
+curl --get 'http://localhost:8051/api/v1/parse' \
+  --header 'Authorization: Bearer mp_xxx' \
+  --data-urlencode 'url=https://v.douyin.com/xxx/'
+```
 
-### 返回说明 (Response)
+纯 URL 兼容写法如下。查询参数中的 Key 可能被浏览器或代理日志记录，不建议在正式项目中使用：
+
+```text
+http://localhost:8051/api/v1/parse?key=mp_xxx&url=https://v.douyin.com/xxx/
+```
+
+客户可在 `/console` 创建和停用 API Key；管理员可在 `/admin` 配置客户有效期、积分、QPS 与平台开关。
+
+### 在线体验兼容接口
+
+`POST /api/parse` 仅供首页在线体验功能内部使用，可由管理员单独关闭，不作为客户接入接口。
+
+### 通用返回说明（Response）
 格式: `application/json`
 
 成功响应示例：
@@ -209,6 +226,8 @@ python app.py
 }
 ```
 
+默认响应还会附带可由管理员配置或关闭的 `_tip` 服务信息字段。
+
 ---
 
 ## 🧪 自动化测试与健康自检
@@ -222,8 +241,6 @@ python3 tests/manual_verify_parsers.py --limit 1
 # 仅验证单个或指定平台（如：小云雀AI / 抖音）
 python3 tests/manual_verify_parsers.py --platform "小云雀AI"
 ```
-
-> 💡 更多多形态全量回归测试命令与 Pytest 自动化规范，请参阅 **[测试体系与回归验证指南](docs/testing.md)**。
 
 ---
 
