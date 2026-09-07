@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from app import create_app
 from src.auth import hash_api_key
-from src.api.access import SQLiteRateLimiter, get_client_ip
+from src.api.access import SQLiteRateLimiter, get_client_ip, sanitize_log_url
 from src.db import get_db, reserve_user_credit, utcnow
 
 
@@ -324,6 +324,97 @@ class ManagementTest(unittest.TestCase):
             trend_user = get_daily_trend(user_id=1, days=7)
             self.assertEqual(len(trend_user["trend"]), 7)
             self.assertGreaterEqual(trend_user["max_val"], 2)
+
+    def test_log_url_is_sanitized(self):
+        value = sanitize_log_url(
+            "复制链接 https://example.com/video/1?share_id=42&token=secret&sign=abc#private"
+        )
+        self.assertEqual(
+            value,
+            "https://example.com/video/1?share_id=42&token=%5BREDACTED%5D&sign=%5BREDACTED%5D",
+        )
+        self.assertEqual(
+            sanitize_log_url("https://user:password@example.com/private"),
+            "https://example.com/private",
+        )
+
+    def test_admin_can_export_logs_as_csv(self):
+        self.client.post("/auth/setup", data={"csrf_token": self.csrf(), "username": "admin", "password": "password123", "confirm_password": "password123"})
+        self.client.post("/auth/login", data={"csrf_token": self.csrf(), "username": "admin", "password": "password123"})
+        with self.app.app_context():
+            db = get_db()
+            db.execute(
+                "INSERT INTO request_logs(platform,path,status_code,error_code,duration_ms,input_url,created_at) "
+                "VALUES(?,?,?,?,?,?,?)",
+                ("抖音", "/api/v1/parse", 400, "MEDIA_NOT_FOUND", 123, "https://example.com/video/1", utcnow()),
+            )
+            db.commit()
+
+        response = self.client.get("/admin/logs/export.csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/csv", response.content_type)
+        body = response.get_data(as_text=True)
+        self.assertIn("脱敏 URL", body)
+        self.assertIn("https://example.com/video/1", body)
+        self.assertIn("MEDIA_NOT_FOUND", body)
+
+    def test_user_can_export_only_own_logs_as_csv(self):
+        self.client.post(
+            "/auth/register",
+            data={"csrf_token": self.csrf(), "username": "log_user", "password": "password123", "confirm_password": "password123"},
+        )
+        self.client.post(
+            "/auth/login",
+            data={"csrf_token": self.csrf(), "username": "log_user", "password": "password123"},
+        )
+        with self.app.app_context():
+            db = get_db()
+            user = db.execute("SELECT id FROM users WHERE username='log_user'").fetchone()
+            db.execute(
+                "INSERT INTO request_logs(user_id,platform,path,status_code,duration_ms,input_url,created_at) VALUES(?,?,?,?,?,?,?)",
+                (user["id"], "抖音", "/api/v1/parse", 200, 88, "https://example.com/mine", utcnow()),
+            )
+            db.execute(
+                "INSERT INTO request_logs(platform,path,status_code,duration_ms,input_url,created_at) VALUES(?,?,?,?,?,?)",
+                ("快手", "/api/v1/parse", 200, 99, "https://example.com/other", utcnow()),
+            )
+            db.commit()
+
+        response = self.client.get("/console/logs/export.csv")
+        body = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("https://example.com/mine", body)
+        self.assertNotIn("https://example.com/other", body)
+
+    def test_admin_can_purge_only_selected_old_logs(self):
+        self.client.post("/auth/setup", data={"csrf_token": self.csrf(), "username": "admin", "password": "password123", "confirm_password": "password123"})
+        self.client.post("/auth/login", data={"csrf_token": self.csrf(), "username": "admin", "password": "password123"})
+        with self.app.app_context():
+            db = get_db()
+            old_time = (datetime.now(timezone.utc) - timedelta(days=31)).isoformat(timespec="seconds")
+            db.execute(
+                "INSERT INTO request_logs(path,status_code,duration_ms,created_at) VALUES(?,?,?,?)",
+                ("/api/v1/parse", 200, 1, old_time),
+            )
+            db.execute(
+                "INSERT INTO request_logs(path,status_code,duration_ms,created_at) VALUES(?,?,?,?)",
+                ("/api/v1/parse", 200, 1, utcnow()),
+            )
+            db.commit()
+
+        response = self.client.post(
+            "/admin/logs/purge",
+            data={"csrf_token": self.csrf(), "scope": "30", "confirmation": "清理日志"},
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/admin#logs"))
+
+        # Follow redirect and verify flash message
+        response = self.client.get(response.location, follow_redirects=True)
+        self.assertIn("共 1 条", response.get_data(as_text=True))
+        with self.app.app_context():
+            self.assertEqual(get_db().execute("SELECT COUNT(*) count FROM request_logs").fetchone()["count"], 1)
 
     def test_update_api_tip_settings(self):
         # Create admin and login

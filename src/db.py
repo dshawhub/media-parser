@@ -1,7 +1,8 @@
 import math
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from flask import current_app, g
 
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS request_logs (
     status_code INTEGER NOT NULL,
     error_code TEXT,
     duration_ms INTEGER NOT NULL,
+    input_url TEXT,
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS rate_limit_buckets (
@@ -61,8 +63,22 @@ CREATE INDEX IF NOT EXISTS idx_rate_limit_bucket_time ON rate_limit_buckets(buck
 """
 
 
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
+
+
 def utcnow():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def beijing_now():
+    """返回当前北京时间，不依赖部署服务器的时区配置。"""
+    return datetime.now(timezone.utc).astimezone(BEIJING_TZ)
+
+
+def beijing_period_start_utc(days):
+    """返回“近 N 个北京时间自然日”的起始时刻（UTC）。"""
+    start_date = beijing_now().date() - timedelta(days=max(1, days) - 1)
+    return datetime.combine(start_date, time.min, tzinfo=BEIJING_TZ).astimezone(timezone.utc).isoformat(timespec="seconds")
 
 
 def get_db():
@@ -175,11 +191,11 @@ def init_app(app):
 
 def get_daily_trend(user_id=None, days=7):
     db = get_db()
-    today = datetime.now().date()
+    today = beijing_now().date()
     
     # 确定实际天数 (days=0 表示全周期)
     if days == 0:
-        sql_min = "SELECT MIN(date(created_at, 'localtime')) as min_date FROM request_logs "
+        sql_min = "SELECT MIN(date(datetime(created_at, '+8 hours'))) as min_date FROM request_logs "
         params_min = []
         if user_id is not None:
             sql_min += "WHERE user_id = ? "
@@ -197,7 +213,7 @@ def get_daily_trend(user_id=None, days=7):
         total_days = max(1, days)
 
     sql = (
-        "SELECT date(created_at, 'localtime') as day, "
+        "SELECT date(datetime(created_at, '+8 hours')) as day, "
         "COUNT(*) as calls, "
         "SUM(CASE WHEN status_code < 400 THEN 1 ELSE 0 END) as successes "
         "FROM request_logs "
@@ -205,8 +221,8 @@ def get_daily_trend(user_id=None, days=7):
     params = []
     where_clauses = []
     if days > 0:
-        where_clauses.append("datetime(created_at) >= datetime('now', ? || ' days', 'localtime')")
-        params.append(f"-{total_days}")
+        where_clauses.append("created_at >= ?")
+        params.append(beijing_period_start_utc(total_days))
     if user_id is not None:
         where_clauses.append("user_id = ?")
         params.append(user_id)
@@ -311,8 +327,8 @@ def get_platform_distribution(user_id=None, days=7):
     params = []
     where_clauses = []
     if days > 0:
-        where_clauses.append("datetime(created_at) >= datetime('now', ? || ' days', 'localtime')")
-        params.append(f"-{days}")
+        where_clauses.append("created_at >= ?")
+        params.append(beijing_period_start_utc(days))
     if user_id is not None:
         where_clauses.append("user_id = ?")
         params.append(user_id)
@@ -395,8 +411,8 @@ def get_top_users(days=7, limit=10):
     )
     params = []
     if days > 0:
-        sql += "WHERE datetime(l.created_at) >= datetime('now', ? || ' days', 'localtime') "
-        params.append(f"-{days}")
+        sql += "WHERE l.created_at >= ? "
+        params.append(beijing_period_start_utc(days))
     sql += "GROUP BY u.id ORDER BY calls DESC LIMIT ?"
     params.append(limit)
 
@@ -422,8 +438,8 @@ def get_top_keys(user_id, days=7, limit=10):
     )
     params = [user_id]
     if days > 0:
-        sql += "AND datetime(l.created_at) >= datetime('now', ? || ' days', 'localtime') "
-        params.append(f"-{days}")
+        sql += "AND l.created_at >= ? "
+        params.append(beijing_period_start_utc(days))
     sql += "GROUP BY k.id ORDER BY calls DESC LIMIT ?"
     params.append(limit)
 

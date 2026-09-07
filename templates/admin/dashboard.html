@@ -40,7 +40,8 @@
                 <div>
                     <h2>API 调用趋势</h2>
                     <span class="muted">
-                        {% if current_days == 0 %}全周期每日接口请求总数与成功解析数{% else %}近 {{ current_days }} 天每日接口请求总数与成功解析数{%
+                        {% if current_days == 0 %}全周期每日接口请求总数与成功解析数（北京时间）{% else %}近 {{ current_days }}
+                        个北京时间自然日的接口请求总数与成功解析数{%
                         endif %}
                     </span>
                 </div>
@@ -127,7 +128,8 @@
                 <div style="margin-bottom:16px">
                     <h2>平台使用分布</h2>
                     <span class="muted">
-                        {% if current_days == 0 %}全周期各平台调取占比与分布{% else %}近 {{ current_days }} 天各平台解析调取占比与分布{% endif %}
+                        {% if current_days == 0 %}全周期各平台调取占比与分布（北京时间）{% else %}近 {{ current_days }}
+                        个北京时间自然日各平台解析调取占比与分布{% endif %}
                     </span>
                 </div>
 
@@ -177,7 +179,8 @@
                 <div style="margin-bottom:16px">
                     <h2>用户解析活跃榜 (Top 10)</h2>
                     <span class="muted">
-                        {% if current_days == 0 %}全周期调用量最高的客户账号{% else %}近 {{ current_days }} 天调用量最高的客户账号{% endif %}
+                        {% if current_days == 0 %}全周期调用量最高的客户账号（北京时间）{% else %}近 {{ current_days }} 个北京时间自然日调用量最高的客户账号{%
+                        endif %}
                     </span>
                 </div>
 
@@ -225,7 +228,9 @@
             <section class="card" style="margin-bottom:20px">
                 <div style="margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">
                     <h2 style="font-size:16px;margin:0;display:flex;align-items:center;gap:8px">
-                        <span style="font-size:18px">🛡️</span> 服务与访问控制
+                        <svg class="app-icon" style="width:18px;height:18px" aria-hidden="true">
+                            <use href="{{ url_for('static', filename='icons.svg') }}#icon-shield"></use>
+                        </svg> 服务与访问控制
                     </h2>
                 </div>
                 <div class="settings-list">
@@ -279,7 +284,9 @@
             <section class="card" style="margin-bottom:20px">
                 <div style="margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">
                     <h2 style="font-size:16px;margin:0;display:flex;align-items:center;gap:8px">
-                        <span style="font-size:18px">👤</span> 新账号初始参数配置
+                        <svg class="app-icon" style="width:18px;height:18px" aria-hidden="true">
+                            <use href="{{ url_for('static', filename='icons.svg') }}#icon-user"></use>
+                        </svg> 新账号初始参数配置
                     </h2>
                 </div>
                 <div class="settings-list">
@@ -326,7 +333,9 @@
             <section class="card" style="margin-bottom:20px">
                 <div style="margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">
                     <h2 style="font-size:16px;margin:0;display:flex;align-items:center;gap:8px">
-                        <span style="font-size:18px">🏷️</span> API 响应水印与版权提示
+                        <svg class="app-icon" style="width:18px;height:18px" aria-hidden="true">
+                            <use href="{{ url_for('static', filename='icons.svg') }}#icon-tag"></use>
+                        </svg> API 响应水印与版权提示
                     </h2>
                 </div>
                 <div class="settings-list">
@@ -427,7 +436,7 @@
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 </form>
                                 <input form="user-form-{{ user['id'] }}" type="date" name="expires_at"
-                                    value="{{ user['expires_at'][:10] if user['expires_at'] else '' }}"
+                                    value="{{ format_local_date(user['expires_at']) if user['expires_at'] else '' }}"
                                     onchange="this.form.submit()">
                             </td>
                             <td>
@@ -556,7 +565,7 @@
                             </td>
                             <td><strong>{{ key['name'] }}</strong></td>
                             <td><span class="key">{{ key['key_prefix'] }}••••••••••••</span></td>
-                            <td>{{ key['last_used_at'][:19]|replace('T',' ') if key['last_used_at'] else '从未' }}</td>
+                            <td>{{ format_log_time(key['last_used_at']) if key['last_used_at'] else '从未' }}</td>
                             <td>
                                 <form id="key-form-{{ key['id'] }}" method="post"
                                     action="{{ url_for('admin.update_key', key_id=key['id']) }}">
@@ -647,25 +656,53 @@
     <!-- 视图 6：运行日志 -->
     <div id="logs" class="tab-view" style="display:none">
         <section class="card">
-            <h2>运行日志</h2>
+            <div class="row between" style="align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+                <div>
+                    <div class="row" style="gap:10px;align-items:center">
+                        <h2 style="margin:0">运行日志</h2>
+                        <span class="badge" style="font-weight:600">{{ log_storage['count'] }} 条记录</span>
+                    </div>
+                    <span class="muted" style="display:block;margin-top:6px;font-size:13px">
+                        链接中的密钥、令牌和签名参数会自动脱敏；
+                        {% if log_storage['count'] > 0 and log_storage['oldest_created_at'] %}
+                        记录跨度（北京时间）：{{ format_log_time(log_storage['oldest_created_at']) }} ~ {{
+                        format_log_time(log_storage['newest_created_at']) }}
+                        {% else %}
+                        日志默认永久保存，支持导出与清理维护
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="row" style="gap:8px">
+                    <a class="btn btn-secondary" href="{{ url_for('admin.export_logs') }}">导出 CSV</a>
+                    <button type="button" class="btn btn-secondary" style="color:#b91c1c;border-color:#fecaca"
+                        onclick="openAdminPurgeLogsModal()">清理日志</button>
+                </div>
+            </div>
             <div class="table-wrap">
-                <table style="width:100%;min-width:750px">
+                <table style="width:100%;min-width:1080px">
                     <thead>
                         <tr>
-                            <th style="width:22%">时间</th>
-                            <th style="width:24%">客户 / Key Prefix</th>
-                            <th style="width:16%">平台</th>
-                            <th style="width:12%">状态</th>
-                            <th style="width:12%">耗时</th>
-                            <th style="width:14%">错误码</th>
+                            <th>时间（北京时间）</th>
+                            <th>客户 / Key Prefix</th>
+                            <th>平台</th>
+                            <th>脱敏 URL</th>
+                            <th>状态</th>
+                            <th>耗时</th>
+                            <th>错误码</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for log in logs %}
                         <tr>
-                            <td>{{ log['created_at'][:19]|replace('T',' ') }}</td>
+                            <td>{{ format_log_time(log['created_at']) }}</td>
                             <td>{{ log['username'] or '在线体验' }} {{ log['key_prefix'] or '' }}</td>
                             <td>{{ log['platform'] or '-' }}</td>
+                            <td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                {% if log['input_url'] %}
+                                <a href="{{ log['input_url'] }}" target="_blank" rel="noopener noreferrer"
+                                    title="{{ log['input_url'] }}">{{ log['input_url'] }}</a>
+                                {% else %}-{% endif %}
+                            </td>
                             <td><span class="badge {{ '' if log['status_code']<400 else 'off' }}">{{ log['status_code']
                                     }}</span></td>
                             <td>{{ log['duration_ms'] }} ms</td>
@@ -673,12 +710,25 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="muted">暂无日志</td>
+                            <td colspan="7" class="muted">暂无日志</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% if logs_page > 1 or logs_has_next %}
+            <div class="row between" style="margin-top:16px">
+                <span class="muted">第 {{ logs_page }} 页，每页 50 条</span>
+                <div class="row" style="gap:8px">
+                    {% if logs_page > 1 %}<a class="btn btn-secondary btn-small"
+                        href="{{ url_for('admin.dashboard', days=current_days, logs_page=logs_page - 1) }}#logs">上一页</a>{%
+                    endif %}
+                    {% if logs_has_next %}<a class="btn btn-secondary btn-small"
+                        href="{{ url_for('admin.dashboard', days=current_days, logs_page=logs_page + 1) }}#logs">下一页</a>{%
+                    endif %}
+                </div>
+            </div>
+            {% endif %}
         </section>
     </div>
 
@@ -769,7 +819,120 @@
         </div>
     </div>
 
+    <!-- 清理请求日志弹窗 -->
+    <div id="admin-purge-logs-modal-backdrop" class="modal-backdrop" style="display:none" aria-hidden="true">
+        <div class="modal-card" style="max-width:480px" role="dialog" aria-modal="true">
+            <div class="row between" style="margin-bottom:16px">
+                <h3 class="modal-title" style="margin:0;color:#b91c1c;display:flex;align-items:center;gap:8px">
+                    <svg class="app-icon" style="width:20px;height:20px;color:#ef4444" aria-hidden="true">
+                        <use href="{{ url_for('static', filename='icons.svg') }}#icon-alert"></use>
+                    </svg>
+                    清理请求日志
+                </h3>
+                <button type="button" class="toast-close" onclick="closeAdminPurgeLogsModal()"
+                    aria-label="关闭">&times;</button>
+            </div>
+
+            <div
+                style="background:#fef2f2;border:1px solid #fee2e2;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.5;color:#991b1b">
+                <strong>风险提示：</strong>日志清理后无法恢复，且会影响对应历史区间的统计图表。<br>
+                建议在清理前先 <a href="{{ url_for('admin.export_logs') }}" target="_blank"
+                    style="color:#b91c1c;font-weight:600;text-decoration:underline">导出 CSV 归档备份</a>。
+            </div>
+
+            <div
+                style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#475569">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <span>当前日志总量：</span>
+                    <strong style="color:#0f172a">{{ log_storage['count'] }} 条</strong>
+                </div>
+                {% if log_storage['count'] > 0 and log_storage['oldest_created_at'] %}
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <span>最早记录（北京时间）：</span>
+                    <span>{{ format_log_time(log_storage['oldest_created_at']) }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span>最新记录（北京时间）：</span>
+                    <span>{{ format_log_time(log_storage['newest_created_at']) }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <form method="post" action="{{ url_for('admin.purge_logs') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="field" style="margin:12px 0">
+                    <label>清理范围</label>
+                    <select id="admin-purge-scope" name="scope" required onchange="handlePurgeScopeChange(this)">
+                        <option value="30">清理 30 天前的日志</option>
+                        <option value="90">清理 90 天前的日志</option>
+                        <option value="180">清理 180 天前的日志</option>
+                        <option value="custom">清理指定日期前的日志</option>
+                        <option value="all">清空全部请求日志</option>
+                    </select>
+                </div>
+
+                <div id="admin-purge-custom-date" class="field" style="margin:12px 0;display:none">
+                    <label>指定截止日期 <span class="muted">(该日期 00:00:00 之前的日志将被清理)</span></label>
+                    <input type="date" name="before_date">
+                </div>
+
+                <div class="field" style="margin:16px 0 12px">
+                    <label>确认操作 <span class="muted">(请输入“<strong style="color:#dc2626">清理日志</strong>”以确认)</span></label>
+                    <input type="text" id="admin-purge-confirmation-input" name="confirmation" placeholder="清理日志"
+                        required autocomplete="off">
+                </div>
+
+                <div class="modal-footer" style="margin-top:20px">
+                    <button type="button" class="btn btn-secondary" onclick="closeAdminPurgeLogsModal()">取消</button>
+                    <button type="submit" class="btn btn-danger">确认清理</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        function openAdminPurgeLogsModal() {
+            const m = document.getElementById('admin-purge-logs-modal-backdrop');
+            if (!m) return;
+            m.style.display = 'flex';
+            void m.offsetHeight;
+            m.classList.add('modal-open');
+            const scopeSelect = document.getElementById('admin-purge-scope');
+            if (scopeSelect) {
+                scopeSelect.value = '30';
+                handlePurgeScopeChange(scopeSelect);
+            }
+            const input = document.getElementById('admin-purge-confirmation-input');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function closeAdminPurgeLogsModal() {
+            const m = document.getElementById('admin-purge-logs-modal-backdrop');
+            if (!m) return;
+            m.classList.remove('modal-open');
+            setTimeout(() => { m.style.display = 'none'; }, 180);
+        }
+
+        function handlePurgeScopeChange(selectEl) {
+            const customDateBox = document.getElementById('admin-purge-custom-date');
+            if (!customDateBox) return;
+            const dateInput = customDateBox.querySelector('input[name="before_date"]');
+            if (selectEl.value === 'custom') {
+                customDateBox.style.display = 'block';
+                if (dateInput) dateInput.required = true;
+            } else {
+                customDateBox.style.display = 'none';
+                if (dateInput) {
+                    dateInput.required = false;
+                    dateInput.value = '';
+                }
+            }
+        }
+
         function openAdminCreateKeyModal() {
             const m = document.getElementById('create-key-modal-backdrop');
             if (!m) return;
@@ -848,6 +1011,12 @@
                     if (e.target === rpm) closeAdminResetPasswordModal();
                 });
             }
+            const plm = document.getElementById('admin-purge-logs-modal-backdrop');
+            if (plm) {
+                plm.addEventListener('click', (e) => {
+                    if (e.target === plm) closeAdminPurgeLogsModal();
+                });
+            }
 
             window.triggerSettingsSubmit = function (el) {
                 const form = (el && el.form) || document.getElementById('admin-settings-form');
@@ -880,8 +1049,8 @@
 
                             const title = isNowChecked ? '开启 API 服务总开关' : '暂停 API 服务总开关';
                             const message = isNowChecked
-                                ? '💡 提示：保存后将重新开启全局 API 解析服务，恢复所有外部接口调用响应。确定保存系统配置吗？'
-                                : '⚠️ 警告：保存后将暂停全局 API 解析服务，所有外部客户与系统发起的接口解析请求将立即被拦截拒绝！确定保存系统配置并暂停服务吗？';
+                                ? '提示：保存后将重新开启全局 API 解析服务，恢复所有外部接口调用响应。确定保存系统配置吗？'
+                                : '警告：保存后将暂停全局 API 解析服务，所有外部客户与系统发起的接口解析请求将立即被拦截拒绝！确定保存系统配置并暂停服务吗？';
                             const confirmText = isNowChecked ? '确认开启' : '确认暂停';
                             const type = isNowChecked ? 'primary' : 'danger';
 

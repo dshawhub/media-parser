@@ -4,6 +4,7 @@ import secrets
 import string
 from datetime import datetime, timezone
 from functools import wraps
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, g, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -264,16 +265,43 @@ def format_user_expiry(user):
         return "永久有效"
     if not user["expires_at"]:
         return "未开通"
-    raw = str(user["expires_at"]).strip()
-    if not raw:
+    formatted = format_local_date(user["expires_at"])
+    if formatted == "-":
         return "未开通"
-    formatted = raw[:10]
     if user_is_expired(user):
         return f"{formatted} (已到期)"
     return formatted
+
+
+def format_log_time(value):
+    """将数据库中以 UTC 保存的时间展示为北京时间。"""
+    if not value:
+        return "-"
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return str(value)[:19].replace("T", " ")
+
+
+def format_local_date(value):
+    """将 UTC 时间转换为北京时间日期，供日期型表单和状态使用。"""
+    if not value:
+        return "-"
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
+    except ValueError:
+        return str(value)[:10]
 
 
 def register_template_helpers(app):
     app.jinja_env.globals["csrf_token"] = csrf_token
     app.jinja_env.globals["user_is_expired"] = user_is_expired
     app.jinja_env.globals["format_user_expiry"] = format_user_expiry
+    app.jinja_env.globals["format_log_time"] = format_log_time
+    app.jinja_env.globals["format_local_date"] = format_local_date

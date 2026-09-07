@@ -1,10 +1,21 @@
-from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for
+import csv
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from src.auth import csrf_protected, generate_api_key, hash_api_key, login_required, user_is_expired
+from flask import Blueprint, Response, flash, g, redirect, render_template, request, session, stream_with_context, url_for
+
+from src.auth import csrf_protected, format_log_time, generate_api_key, hash_api_key, login_required, user_is_expired
 from src.db import get_daily_trend, get_db, get_platform_distribution, get_top_keys, utcnow
 
 
 bp = Blueprint("portal", __name__, url_prefix="/console")
+
+
+def _positive_page(value):
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError):
+        return 1
 
 
 @bp.get("")
@@ -26,9 +37,13 @@ def dashboard():
         "WHERE user_id=? AND datetime(created_at) >= datetime('now','-1 day')",
         (g.user["id"],),
     ).fetchone()
-    logs = db.execute(
-        "SELECT * FROM request_logs WHERE user_id=? ORDER BY id DESC LIMIT 20", (g.user["id"],)
+    logs_page = _positive_page(request.args.get("logs_page"))
+    logs_page_size = 50
+    log_rows = db.execute(
+        "SELECT * FROM request_logs WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
+        (g.user["id"], logs_page_size + 1, (logs_page - 1) * logs_page_size),
     ).fetchall()
+    logs = log_rows[:logs_page_size]
     chart_data = get_daily_trend(user_id=g.user["id"], days=days)
     pie_data = get_platform_distribution(user_id=g.user["id"], days=days)
     top_keys = get_top_keys(user_id=g.user["id"], days=days, limit=10)
@@ -42,9 +57,49 @@ def dashboard():
         pie_data=pie_data,
         top_keys=top_keys,
         current_days=days,
+        logs_page=logs_page,
+        logs_has_next=len(log_rows) > logs_page_size,
     )
 
 
+
+
+def _safe_csv_cell(value):
+    text = "" if value is None else str(value)
+    if text.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return "'" + text
+    return text
+
+
+class _CsvRowBuffer:
+    def write(self, value):
+        return value
+
+
+@bp.get("/logs/export.csv")
+@login_required
+def export_logs():
+    def generate():
+        writer = csv.writer(_CsvRowBuffer())
+        yield "\ufeff"
+        yield writer.writerow(("时间（北京时间）", "平台", "请求路径", "脱敏 URL", "状态码", "耗时（毫秒）", "错误码"))
+        cursor = get_db().execute(
+            "SELECT * FROM request_logs WHERE user_id=? ORDER BY id DESC",
+            (g.user["id"],),
+        )
+        while rows := cursor.fetchmany(1000):
+            for row in rows:
+                yield writer.writerow(tuple(_safe_csv_cell(value) for value in (
+                    format_log_time(row["created_at"]), row["platform"] or "", row["path"],
+                    row["input_url"] or "", row["status_code"], row["duration_ms"],
+                    row["error_code"] or "",
+                )))
+    filename = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("my-request-logs-%Y%m%d-%H%M%S.csv")
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @bp.post("/keys")
@@ -114,4 +169,3 @@ def delete_key(key_id):
     db.commit()
     flash("密钥已删除，相关调用日志会保留", "success")
     return redirect(url_for("portal.dashboard") + "#keys")
-

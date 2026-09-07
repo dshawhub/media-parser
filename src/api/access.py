@@ -1,6 +1,8 @@
 import random
+import re
 import sys
 import time
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from flask import current_app, has_app_context, request
 
@@ -60,6 +62,60 @@ class SQLiteRateLimiter:
 
 
 rate_limiter = SQLiteRateLimiter()
+
+
+_URL_PATTERN = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+_SENSITIVE_QUERY_KEYS = {
+    "api_key", "apikey", "auth", "authorization", "cookie", "key",
+    "passwd", "password", "secret", "session", "session_id", "sessionid",
+    "sid", "sign", "signature", "token",
+}
+
+
+def sanitize_log_url(value):
+    """提取并脱敏用户提交的链接，供运行日志持久化。"""
+    if not isinstance(value, str):
+        return None
+    match = _URL_PATTERN.search(value.strip())
+    if not match:
+        return None
+    raw_url = match.group(0).rstrip(".,;:!?)]}，。；：！？）】》")[:4096]
+    try:
+        parsed = urlsplit(raw_url)
+        if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
+            return None
+        # URL 中的 user:password@host 也属于凭证，日志只保留主机部分。
+        safe_netloc = parsed.netloc.rsplit("@", 1)[-1]
+        sanitized_query = []
+        for key, item_value in parse_qsl(parsed.query, keep_blank_values=True):
+            normalized_key = key.casefold().replace("-", "_")
+            sensitive = (
+                normalized_key in _SENSITIVE_QUERY_KEYS
+                or normalized_key.endswith("_token")
+                or normalized_key.endswith("_secret")
+                or normalized_key.endswith("_signature")
+            )
+            sanitized_query.append((key, "[REDACTED]" if sensitive else item_value))
+        return urlunsplit((
+            parsed.scheme.lower(),
+            safe_netloc,
+            parsed.path,
+            urlencode(sanitized_query, doseq=True),
+            "",
+        ))[:4096]
+    except (TypeError, ValueError):
+        return None
+
+
+def _request_log_url():
+    value = request.args.get("url") or request.args.get("text")
+    if value is None and request.form:
+        value = request.form.get("url") or request.form.get("text")
+    if value is None and request.is_json:
+        payload = request.get_json(silent=True) or {}
+        if isinstance(payload, dict):
+            value = payload.get("url") or payload.get("text")
+    return sanitize_log_url(value)
 
 
 def consume_rate_limit(subject, limit, window_seconds=1):
@@ -143,8 +199,8 @@ def record_request(access, platform, path, status_code, error_code, duration_ms)
         return
     db = get_db()
     db.execute(
-        "INSERT INTO request_logs(user_id,api_key_id,platform,path,status_code,error_code,duration_ms,created_at) "
-        "VALUES(?,?,?,?,?,?,?,?)",
+        "INSERT INTO request_logs(user_id,api_key_id,platform,path,status_code,error_code,duration_ms,input_url,created_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?)",
         (
             access["user_id"] if access else None,
             access["id"] if access else None,
@@ -153,12 +209,8 @@ def record_request(access, platform, path, status_code, error_code, duration_ms)
             status_code,
             error_code,
             duration_ms,
+            _request_log_url(),
             utcnow(),
         ),
     )
-    if random.randint(1, 100) == 1:
-        try:
-            db.execute("DELETE FROM request_logs WHERE datetime(created_at) < datetime('now','-30 days')")
-        except Exception:
-            pass
     db.commit()

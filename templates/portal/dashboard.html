@@ -24,7 +24,9 @@
             <div class="card stat"><span class="muted">剩余解析积分</span><strong>{{ '不限制' if g.user['credits'] == -1 else
                     (g.user['credits'] or 0) }}</strong></div>
             <div class="card stat"><span class="muted">账号 QPS 限制</span><strong>{{ g.user['qps_limit'] }}</strong></div>
-            <div class="card stat"><span class="muted">账号到期时间</span><strong style="font-size:18px;margin-top:12px;color:{{ '#ef4444' if user_is_expired(g.user) else '#0f172a' }}">{{ format_user_expiry(g.user) }}</strong></div>
+            <div class="card stat"><span class="muted">账号到期时间</span><strong
+                    style="font-size:18px;margin-top:12px;color:{{ '#ef4444' if user_is_expired(g.user) else '#0f172a' }}">{{
+                    format_user_expiry(g.user) }}</strong></div>
         </div>
 
         <!-- 动态周期筛选栏 -->
@@ -45,8 +47,8 @@
                 <div>
                     <h2>API 调用趋势</h2>
                     <span class="muted">
-                        {% if current_days == 0 %}全周期您账号的每日接口请求总数与成功解析数{% else %}近 {{ current_days }}
-                        天您账号的每日接口请求总数与成功解析数{% endif %}
+                        {% if current_days == 0 %}全周期您账号的每日接口请求总数与成功解析数（北京时间）{% else %}近 {{ current_days }}
+                        个北京时间自然日您账号的接口请求总数与成功解析数{% endif %}
                     </span>
                 </div>
                 <div class="row" style="gap:16px;font-size:13px">
@@ -132,7 +134,8 @@
                 <div style="margin-bottom:16px">
                     <h2>平台使用分布</h2>
                     <span class="muted">
-                        {% if current_days == 0 %}全周期您账号各平台调取占比与分布{% else %}近 {{ current_days }} 天您账号各平台解析调取占比与分布{%
+                        {% if current_days == 0 %}全周期您账号各平台调取占比与分布（北京时间）{% else %}近 {{ current_days }}
+                        个北京时间自然日您账号各平台解析调取占比与分布{%
                         endif %}
                     </span>
                 </div>
@@ -183,7 +186,8 @@
                 <div style="margin-bottom:16px">
                     <h2>密钥调取活跃榜 (Top 10)</h2>
                     <span class="muted">
-                        {% if current_days == 0 %}全周期调用量最高的 API 密钥{% else %}近 {{ current_days }} 天调用量最高的 API 密钥{% endif
+                        {% if current_days == 0 %}全周期调用量最高的 API 密钥（北京时间）{% else %}近 {{ current_days }} 个北京时间自然日调用量最高的
+                        API 密钥{% endif
                         %}
                     </span>
                 </div>
@@ -230,7 +234,8 @@
                     <button type="button" class="toast-close" onclick="closePortalNewKeyModal()"
                         aria-label="关闭">&times;</button>
                 </div>
-                <p class="muted" style="color:#15803d;margin:0 0 14px">密钥明文仅在此处展示一次，请妥善保管。（注：示例中的 <code>YOUR_URL</code> 需替换为您要解析的具体视频或图集链接）</p>
+                <p class="muted" style="color:#15803d;margin:0 0 14px">密钥明文仅在此处展示一次，请妥善保管。（注：示例中的 <code>YOUR_URL</code>
+                    需替换为您要解析的具体视频或图集链接）</p>
 
                 <div class="secret" id="new-key" style="margin-bottom:16px;user-select:all">{{ new_api_key }}</div>
 
@@ -278,7 +283,8 @@
                     <h2>API 密钥</h2>
                     <p class="muted" style="margin:4px 0 0">最多可创建 10 个密钥。推荐在正式生产项目中使用 Authorization 请求头传参。</p>
                 </div>
-                <button type="button" class="btn btn-primary btn-small" onclick="openPortalCreateKeyModal()">+ 创建 API Key</button>
+                <button type="button" class="btn btn-primary btn-small" onclick="openPortalCreateKeyModal()">+ 创建 API
+                    Key</button>
             </div>
             <div class="table-wrap">
                 <table style="width:100%;min-width:750px">
@@ -296,9 +302,10 @@
                         <tr>
                             <td><strong>{{ key['name'] }}</strong></td>
                             <td><span class="key">{{ key['key_prefix'] }}••••••••••••</span></td>
-                            <td>{{ key['last_used_at'][:19]|replace('T',' ') if key['last_used_at'] else '从未' }}</td>
+                            <td>{{ format_log_time(key['last_used_at']) if key['last_used_at'] else '从未' }}</td>
                             <td>
-                                <form method="post" action="{{ url_for('portal.toggle_key', key_id=key['id']) }}" style="margin:0">
+                                <form method="post" action="{{ url_for('portal.toggle_key', key_id=key['id']) }}"
+                                    style="margin:0">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <label class="switch switch-sm" title="切换 Key 状态">
                                         <input type="checkbox" name="active" {{ 'checked' if key['active'] }}
@@ -314,9 +321,11 @@
                                         onclick="openPortalEditKeyModal({{ key['id'] }}, '{{ key['name']|e }}')">编辑</button>
                                     <form method="post" action="{{ url_for('portal.delete_key', key_id=key['id']) }}"
                                         style="margin:0" data-confirm="确定要永久删除密钥「{{ key['name'] }}」吗？删除后使用该密钥的接口将立即失效。"
-                                        data-confirm-title="删除 API Key 确认" data-confirm-text="确认删除" data-confirm-type="danger">
+                                        data-confirm-title="删除 API Key 确认" data-confirm-text="确认删除"
+                                        data-confirm-type="danger">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-danger btn-small" style="padding:0 8px;height:28px">删除</button>
+                                        <button class="btn btn-danger btn-small"
+                                            style="padding:0 8px;height:28px">删除</button>
                                     </form>
                                 </div>
                             </td>
@@ -439,30 +448,48 @@
 Authorization: Bearer mp_xxxxxxxxx</pre>
             <p class="muted" style="font-size:13px;margin-top:14px">小白兼容写法（直接放入 URL 参数）：</p>
             <pre class="code">{{ request.url_root }}api/v1/parse?key=mp_xxxxxxxxx&amp;url=YOUR_URL</pre>
-            <p class="muted" style="font-size:12px;margin-top:10px">💡 提示：<code>YOUR_URL</code> 代表您需要解析的目标视频或图集链接（例如：<code>https://v.douyin.com/xxx</code>）。程序代码中发起请求时，建议将 <code>url</code> 参数值进行 URL 编码（URL Encode）。</p>
+            <p class="muted" style="font-size:12px;margin-top:10px;display:flex;gap:6px;align-items:flex-start"><svg
+                    class="app-icon" style="width:15px;height:15px;flex:none;margin-top:1px" aria-hidden="true">
+                    <use href="{{ url_for('static', filename='icons.svg') }}#icon-lightbulb"></use>
+                </svg><span>提示：<code>YOUR_URL</code>
+                    代表您需要解析的目标视频或图集链接（例如：<code>https://v.douyin.com/xxx</code>）。<br>程序代码中发起请求时，建议将 <code>url</code>
+                    参数值进行 URL 编码（URL Encode）。</span></p>
         </section>
     </div>
 
     <!-- 视图 4：请求日志 -->
     <div id="logs" class="tab-view" style="display:none">
         <section class="card">
-            <h2>请求日志</h2>
+            <div class="row between" style="align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+                <div>
+                    <h2>请求日志</h2>
+                    <span class="muted">仅显示您的调用记录；链接中的敏感参数已脱敏，日志永久保存，CSV 可导出全部记录。</span>
+                </div>
+                <a class="btn btn-secondary" href="{{ url_for('portal.export_logs') }}">导出 CSV</a>
+            </div>
             <div class="table-wrap">
-                <table style="width:100%;min-width:650px">
+                <table style="width:100%;min-width:920px">
                     <thead>
                         <tr>
-                            <th style="width:28%">时间</th>
-                            <th style="width:20%">平台</th>
-                            <th style="width:16%">状态</th>
-                            <th style="width:16%">耗时</th>
-                            <th style="width:20%">错误码</th>
+                            <th style="width:28%">时间（北京时间）</th>
+                            <th>平台</th>
+                            <th>脱敏 URL</th>
+                            <th>状态</th>
+                            <th>耗时</th>
+                            <th>错误码</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for log in logs %}
                         <tr>
-                            <td>{{ log['created_at'][:19]|replace('T',' ') }}</td>
+                            <td>{{ format_log_time(log['created_at']) }}</td>
                             <td>{{ log['platform'] or '-' }}</td>
+                            <td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                {% if log['input_url'] %}
+                                <a href="{{ log['input_url'] }}" target="_blank" rel="noopener noreferrer"
+                                    title="{{ log['input_url'] }}">{{ log['input_url'] }}</a>
+                                {% else %}-{% endif %}
+                            </td>
                             <td><span class="badge {{ '' if log['status_code']<400 else 'off' }}">{{ log['status_code']
                                     }}</span></td>
                             <td>{{ log['duration_ms'] }} ms</td>
@@ -470,12 +497,25 @@ Authorization: Bearer mp_xxxxxxxxx</pre>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="muted">暂无调用记录</td>
+                            <td colspan="6" class="muted">暂无调用记录</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% if logs_page > 1 or logs_has_next %}
+            <div class="row between" style="margin-top:16px">
+                <span class="muted">第 {{ logs_page }} 页，每页 50 条</span>
+                <div class="row" style="gap:8px">
+                    {% if logs_page > 1 %}<a class="btn btn-secondary btn-small"
+                        href="{{ url_for('portal.dashboard', days=current_days, logs_page=logs_page - 1) }}#logs">上一页</a>{%
+                    endif %}
+                    {% if logs_has_next %}<a class="btn btn-secondary btn-small"
+                        href="{{ url_for('portal.dashboard', days=current_days, logs_page=logs_page + 1) }}#logs">下一页</a>{%
+                    endif %}
+                </div>
+            </div>
+            {% endif %}
         </section>
     </div>
 

@@ -1,4 +1,7 @@
 <!doctype html>
+{% macro icon(name, class_name='w-4 h-4') -%}
+<svg class="{{ class_name }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#icon-{{ name }}"></use></svg>
+{%- endmacro %}
 <html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
@@ -51,7 +54,7 @@
                     <h1 class="mt-7 text-4xl sm:text-5xl lg:text-6xl leading-[1.1] font-black tracking-[-.045em] text-slate-950">多平台媒体解析，<br><span class="text-brand">一个接口就够了。</span></h1>
                     <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-600">输入任意支持平台的分享链接，统一获取视频、图集、封面、音频与作者信息。无需浏览器环境，既可在线使用，也可通过 API 接入你的业务。</p>
                     <div class="mt-8 flex flex-wrap items-center gap-4"><a href="#parser" class="rounded-xl bg-brand px-6 py-3 font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">立即在线解析</a><a href="#docs" class="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-800 hover:border-indigo-300 hover:text-brand transition">查看 API 示例</a></div>
-                    <div class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-500"><span>✓ 统一 JSON 返回</span><span>✓ API Key 鉴权</span><span>✓ 独立 QPS 限制</span></div>
+                    <div class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-500"><span class="inline-flex items-center gap-1.5">{{ icon('check', 'w-4 h-4 text-emerald-500') }}统一 JSON 返回</span><span class="inline-flex items-center gap-1.5">{{ icon('check', 'w-4 h-4 text-emerald-500') }}API Key 鉴权</span><span class="inline-flex items-center gap-1.5">{{ icon('check', 'w-4 h-4 text-emerald-500') }}独立 QPS 限制</span></div>
                 </div>
                 <div class="code-shadow rounded-2xl overflow-hidden border border-slate-200 bg-white">
                     <div class="h-12 px-4 flex items-center justify-between border-b border-slate-200 bg-slate-50"><div class="flex gap-2"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="w-3 h-3 rounded-full bg-amber-400"></span><span class="w-3 h-3 rounded-full bg-emerald-400"></span></div><span class="text-xs text-slate-500 font-mono">GET /api/v1/parse</span></div>
@@ -76,12 +79,11 @@
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <button onclick="copyCurrentJson()" class="whitespace-nowrap shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-brand transition shadow-sm flex items-center gap-1.5">
-                                <span>📋</span> 复制完整 JSON
+                                {{ icon('clipboard', 'w-4 h-4') }} 复制完整 JSON
                             </button>
                             <button onclick="copyAllLinks()" class="whitespace-nowrap shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-brand transition shadow-sm flex items-center gap-1.5">
-                                <span>🔗</span> 复制全部直链
+                                {{ icon('link', 'w-4 h-4') }} 复制全部直链
                             </button>
-                            <a id="primaryMedia" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap shrink-0 hidden rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition shadow-sm">打开原媒体 ↗</a>
                         </div>
                     </div>
                     <div>
@@ -98,22 +100,42 @@
                 <!-- 视觉媒体预览区 -->
                 <div id="viewVisual" class="p-5 sm:p-7 space-y-6">
                     <!-- 视频播放栏 -->
-                    <div id="videoContainer" class="hidden">
-                        <h4 class="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><span>🎬</span> 视频文件预览</h4>
-                        <video id="videoPlayer" controls playsinline preload="metadata" class="w-full rounded-2xl bg-black max-h-[460px] shadow-sm"></video>
+                    <div id="videoContainer" class="hidden scroll-mt-24">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">{{ icon('video', 'w-4 h-4 text-slate-500') }} 视频文件预览 (<span id="videoCount">0</span>)</h4>
+                            <div class="flex items-center gap-2">
+                                <button id="previousVideoBtn" type="button" onclick="stepVideo(-1)" class="hidden rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40 transition">← 上一个</button>
+                                <button id="nextVideoBtn" type="button" onclick="stepVideo(1)" class="hidden rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40 transition">下一个 →</button>
+                            </div>
+                        </div>
+                        <div class="relative overflow-hidden rounded-2xl bg-slate-950 shadow-sm">
+                            <video id="videoPlayer" controls playsinline preload="metadata" referrerpolicy="no-referrer" class="w-full max-h-[460px] bg-black"></video>
+                            <img id="videoPlaceholder" src="{{ url_for('static', filename='images/video-placeholder.svg') }}" alt="视频暂时无法预览" class="hidden w-full max-h-[460px] object-cover">
+                            <div class="group absolute inset-x-0 top-0 bottom-32">
+                                <div class="pointer-events-none absolute inset-x-0 top-0 -bottom-32 flex items-center justify-center bg-slate-950/45 opacity-0 transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                                    <div class="pointer-events-auto flex items-center gap-2 p-4">
+                                        <a id="videoOpenDirectLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="inline-flex items-center gap-1.5 rounded-xl bg-white/95 px-3.5 py-2 text-xs font-bold text-slate-800 shadow-lg hover:bg-white transition">{{ icon('link', 'w-3.5 h-3.5') }}打开浏览器播放</a>
+                                        <button type="button" onclick="copyCurrentVideoUrl()" class="inline-flex items-center gap-1.5 rounded-xl bg-white/95 px-3.5 py-2 text-xs font-bold text-slate-800 shadow-lg hover:bg-white transition">{{ icon('clipboard', 'w-3.5 h-3.5') }}复制链接</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="videoStrip" class="hidden mt-3 overflow-x-auto custom-scroll scroll-smooth snap-x snap-mandatory pb-2">
+                            <div id="videoTrack" class="flex min-w-max gap-2"></div>
+                        </div>
                     </div>
 
                     <!-- 背景音频播放栏 -->
-                    <div id="audioContainer" class="hidden">
-                        <h4 class="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2"><span>🎵</span> 背景音频</h4>
-                        <audio id="audioPlayer" controls class="w-full rounded-xl"></audio>
+                    <div id="audioContainer" class="hidden scroll-mt-24">
+                        <h4 class="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">{{ icon('music', 'w-4 h-4 text-slate-500') }} 背景音频</h4>
+                        <audio id="audioPlayer" controls referrerpolicy="no-referrer" class="w-full rounded-xl"></audio>
+                        <p id="audioPreviewNotice" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800"></p>
                     </div>
 
                     <!-- 高清图集网格 -->
-                    <div id="imageContainer" class="hidden">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2"><span>🖼️</span> 高清图集/封面 (<span id="imageCount">0</span>)</h4>
-                            <span class="text-xs text-slate-400">点击图片放大或悬浮复制单图直链</span>
+                    <div id="imageContainer" class="hidden scroll-mt-24">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">{{ icon('image', 'w-4 h-4 text-slate-500') }} 高清图集/封面 (<span id="imageCount">0</span>)</h4>
                         </div>
                         <div id="imageGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5"></div>
                     </div>
@@ -132,10 +154,10 @@
         <!-- 图片大图预览 Modal (Lightbox) -->
         <div id="lightboxModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm p-4 flex flex-col items-center justify-center transition-all" onclick="closeLightbox()">
             <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white/80 hover:text-white text-2xl font-bold bg-white/10 w-10 h-10 rounded-full flex items-center justify-center transition">&times;</button>
-            <img id="lightboxImg" src="" alt="" class="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl" onclick="event.stopPropagation()">
+            <img id="lightboxImg" src="" alt="" referrerpolicy="no-referrer" class="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl" onclick="event.stopPropagation()">
             <div class="mt-4 flex items-center gap-3" onclick="event.stopPropagation()">
-                <button id="lightboxCopyBtn" onclick="copyLightboxUrl()" class="rounded-xl bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-xs font-semibold backdrop-blur-md transition">📋 复制图片链接</button>
-                <a id="lightboxOpenLink" target="_blank" rel="noopener noreferrer" class="rounded-xl bg-brand text-white px-4 py-2 text-xs font-semibold shadow-md transition">新标签页打开 ↗</a>
+                <button id="lightboxCopyBtn" onclick="copyLightboxUrl()" class="rounded-xl bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-xs font-semibold backdrop-blur-md transition inline-flex items-center gap-1.5">{{ icon('clipboard', 'w-3.5 h-3.5') }}复制图片链接</button>
+                <a id="lightboxOpenLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="rounded-xl bg-brand text-white px-4 py-2 text-xs font-semibold shadow-md transition">新标签页打开 ↗</a>
             </div>
         </div>
 
@@ -148,70 +170,69 @@
             <div class="max-w-7xl mx-auto px-5 sm:px-8 py-20">
                 <div class="text-center max-w-3xl mx-auto mb-16">
                     <p class="font-mono text-sm font-semibold text-brand">OPEN SOURCE & DEPLOYMENT</p>
-                    <h2 class="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">开源自部署，按实际场景使用</h2>
-                    <p class="mt-4 text-slate-600 text-base leading-7">项目代码基于 MIT 协议开放，不收取软件许可费。运行所需的服务器、网络和平台账号等资源由部署者自行准备。</p>
+                    <h2 class="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">完全开源自建，按需灵活落地</h2>
+                    <p class="mt-4 text-slate-600 text-base leading-7">基于宽松的 MIT 协议开放，零商业授权门槛。解析引擎、业务数据与运行基础设施由部署者全权自主掌控。</p>
                 </div>
 
                 <div class="grid md:grid-cols-3 gap-8 items-stretch">
-                    <!-- 开源自部署 -->
+                    <!-- 个人与轻量自用 -->
                     <div class="rounded-3xl border border-slate-200 bg-white p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition">
                         <div>
                             <div class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">MIT LICENSE</div>
-                            <h3 class="mt-4 text-xl font-bold text-slate-950">开源自部署</h3>
-                            <p class="mt-2 text-sm text-slate-500">适用于学习研究、个人工具与自主可控的业务集成</p>
+                            <h3 class="mt-4 text-xl font-bold text-slate-950">个人与轻量自用</h3>
+                            <p class="mt-2 text-sm text-slate-500">适用于学习研究、个人工具开发与轻量级自动化集成</p>
                             <div class="mt-6 flex items-baseline gap-1">
                                 <span class="text-4xl font-black text-slate-950">¥0</span>
-                                <span class="text-sm font-medium text-slate-500">/ 软件许可费</span>
+                                <span class="text-sm font-medium text-slate-500">/ 永久开源</span>
                             </div>
                             <div class="my-6 border-t border-slate-100"></div>
                             <ul class="space-y-3.5 text-sm text-slate-600">
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>完整源码与标准 JSON 接口</span></li>
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>Docker Compose 一键启动</span></li>
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>通过 GitHub Issues 参与社区维护</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>完整开放源码与标准 JSON 规范</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>Docker Compose 单机快速启动</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>透明无暗桩，通过 GitHub 社区交流</span></li>
                             </ul>
                         </div>
                         <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer" class="mt-8 w-full block text-center rounded-xl border border-slate-300 bg-white py-3 px-4 font-bold text-slate-800 hover:border-brand hover:text-brand transition">查看源码与部署文档</a>
                     </div>
 
-                    <!-- 团队内部 API 服务 -->
+                    <!-- 团队与私有中台 -->
                     <div class="relative rounded-3xl border-2 border-brand bg-white p-8 flex flex-col justify-between shadow-xl ring-1 ring-brand/10">
-                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-brand px-3.5 py-1 text-xs font-bold text-white shadow-sm">内置能力</div>
                         <div>
-                            <div class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brand">SELF-HOSTED API</div>
-                            <h3 class="mt-4 text-xl font-bold text-slate-950">团队内部服务</h3>
-                            <p class="mt-2 text-sm text-slate-500">适合将解析能力部署为团队或业务系统的内部 API</p>
+                            <div class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brand">SELF-HOSTED GATEWAY</div>
+                            <h3 class="mt-4 text-xl font-bold text-slate-950">团队私有网关</h3>
+                            <p class="mt-2 text-sm text-slate-500">适合将解析能力部署为团队或业务系统的统一内部服务</p>
                             <div class="mt-6 flex items-baseline gap-1">
-                                <span class="text-4xl font-black text-brand">自主配置</span>
-                                <span class="text-sm font-medium text-slate-500">/ 本地管理</span>
+                                <span class="text-4xl font-black text-brand">开箱即用</span>
+                                <span class="text-sm font-medium text-slate-500">/ 内置中台管控</span>
                             </div>
                             <div class="my-6 border-t border-slate-100"></div>
                             <ul class="space-y-3.5 text-sm text-slate-600">
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>账号、有效期与解析积分管理</span></li>
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>用户、API Key 与平台三级 QPS 控制</span></li>
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>服务开关、调用日志与用量统计</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>租户、API Key、有效期与积分体系</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>用户 / 密钥 / 平台三级精细化流控</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-brand shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>平台熔断开关、调用日志与用量统计</span></li>
                             </ul>
                         </div>
                         <a href="#docs" class="mt-8 w-full block text-center rounded-xl bg-brand py-3 px-4 font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">查看 API 接入方式</a>
                     </div>
 
-                    <!-- 使用边界 -->
+                    <!-- 私有自治与合规 -->
                     <div class="rounded-3xl border border-slate-200 bg-white p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition">
                         <div>
-                            <div class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">RESPONSIBILITY</div>
-                            <h3 class="mt-4 text-xl font-bold text-slate-950">资源与合规</h3>
-                            <p class="mt-2 text-sm text-slate-500">实际可用性取决于部署环境、目标平台状态及必要的账号配置</p>
+                            <div class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">DATA PRIVACY & COMPLIANCE</div>
+                            <h3 class="mt-4 text-xl font-bold text-slate-950">私有自治与合规</h3>
+                            <p class="mt-2 text-sm text-slate-500">私有网络独立运行，数据不过第三方，保障业务稳定与合规</p>
                             <div class="mt-6 flex items-baseline gap-1">
-                                <span class="text-4xl font-black text-slate-950">自行负责</span>
-                                <span class="text-sm font-medium text-slate-500">/ 部署运维</span>
+                                <span class="text-4xl font-black text-slate-950">自主掌控</span>
+                                <span class="text-sm font-medium text-slate-500">/ 本地私有运行</span>
                             </div>
                             <div class="my-6 border-t border-slate-100"></div>
                             <ul class="space-y-3.5 text-sm text-slate-600">
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>自行承担服务器与网络成本</span></li>
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>部分平台能力可能需要配置 Cookie</span></li>
-                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>遵守目标平台规则及当地法律法规</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>私网独立部署，无第三方调用与数据泄露风险</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>目标平台 Cookie 与密钥凭据完全本地化自管</span></li>
+                                <li class="flex items-center gap-3"><svg class="w-4 h-4 text-emerald-500 shrink-0 fill-current" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg><span>自主把握频次，严格遵守目标平台使用规则</span></li>
                             </ul>
                         </div>
-                        <a href="https://github.com/ucmao/media-parser#%EF%B8%8F-%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE--%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E" target="_blank" rel="noopener noreferrer" class="mt-8 w-full block text-center rounded-xl border border-slate-300 bg-white py-3 px-4 font-bold text-slate-800 hover:border-slate-400 transition">查看协议与免责声明</a>
+                        <a href="https://github.com/ucmao/media-parser#%EF%B8%8F-%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE--%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E" target="_blank" rel="noopener noreferrer" class="mt-8 w-full block text-center rounded-xl border border-slate-300 bg-white py-3 px-4 font-bold text-slate-800 hover:border-slate-400 transition">查看开源协议与合规须知</a>
                     </div>
                 </div>
             </div>
@@ -300,6 +321,9 @@
         const input=document.getElementById('parseUrl');
         let lastParsedData = null;
         let activeLightboxUrl = '';
+        let currentVideoUrls = [];
+        let activeVideoIndex = 0;
+        const iconMarkup = (name, className) => `<svg class="${className}" aria-hidden="true"><use href="{{ url_for('static', filename='icons.svg') }}#icon-${name}"></use></svg>`;
 
         function showToast(message, type = 'success', duration = 3000) {
             const container = document.getElementById('landingToastContainer');
@@ -308,9 +332,9 @@
             const isError = type === 'error';
             const isWarning = type === 'warning';
             const bgClass = isError ? 'bg-red-50 text-red-700 border-red-200' : isWarning ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
-            const icon = isError ? '❌' : isWarning ? '⚠️' : '✅';
+            const icon = isError ? iconMarkup('circle-x', 'w-4 h-4 shrink-0') : isWarning ? iconMarkup('alert', 'w-4 h-4 shrink-0') : iconMarkup('check', 'w-4 h-4 shrink-0');
             toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-lg text-sm font-medium transition-all duration-300 transform -translate-y-2 opacity-0 ${bgClass}`;
-            toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            toast.innerHTML = `${icon}<span>${message}</span>`;
             container.appendChild(toast);
             requestAnimationFrame(() => {
                 toast.classList.remove('-translate-y-2', 'opacity-0');
@@ -371,6 +395,10 @@
             }
         }
 
+        function uniqueMediaUrls(urls){
+            return [...new Set(urls.filter(url => typeof url === 'string' && url.trim()).map(url => url.trim()))];
+        }
+
         function copyAllLinks(){
             if(!lastParsedData) return;
             const links = [];
@@ -385,11 +413,56 @@
                     if(item.live_photo_url) links.push(item.live_photo_url);
                 }
             });
-            if(links.length > 0){
-                copyText(links.join('\n'), `已复制全部 ${links.length} 个媒体直链！`);
+            const uniqueLinks = uniqueMediaUrls(links);
+            if(uniqueLinks.length > 0){
+                copyText(uniqueLinks.join('\n'), `已复制全部 ${uniqueLinks.length} 个媒体直链！`);
             } else {
                 showToast('未找到可复制的媒体链接', 'warning');
             }
+        }
+
+        function copyCurrentVideoUrl(){
+            const url = currentVideoUrls[activeVideoIndex];
+            if(url) copyText(url, '已复制当前视频链接');
+        }
+
+        function selectVideo(index, autoplay = false){
+            if(index < 0 || index >= currentVideoUrls.length) return;
+            activeVideoIndex = index;
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoPlaceholder = document.getElementById('videoPlaceholder');
+            const videoOpenDirectLink = document.getElementById('videoOpenDirectLink');
+            const selectedUrl = currentVideoUrls[index];
+
+            videoPlaceholder.classList.add('hidden');
+            videoPlayer.classList.remove('hidden');
+            videoOpenDirectLink.href = selectedUrl;
+            videoPlayer.onerror = () => {
+                if(currentVideoUrls[activeVideoIndex] !== selectedUrl) return;
+                videoPlayer.pause();
+                videoPlayer.classList.add('hidden');
+                videoPlaceholder.classList.remove('hidden');
+            };
+            videoPlayer.src = selectedUrl;
+            videoPlayer.load();
+
+            document.querySelectorAll('[data-video-index]').forEach((button, buttonIndex) => {
+                const active = buttonIndex === index;
+                button.className = active
+                    ? 'snap-start min-w-[112px] rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-3 text-left text-xs font-bold text-brand shadow-sm transition'
+                    : 'snap-start min-w-[112px] rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-brand transition';
+                button.setAttribute('aria-current', active ? 'true' : 'false');
+            });
+            const activeButton = document.querySelector(`[data-video-index="${index}"]`);
+            activeButton?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+            document.getElementById('previousVideoBtn').disabled = index === 0;
+            document.getElementById('nextVideoBtn').disabled = index === currentVideoUrls.length - 1;
+            if(autoplay) videoPlayer.play().catch(() => {});
+        }
+
+        function stepVideo(offset){
+            selectVideo(activeVideoIndex + offset, true);
         }
 
         function switchResultTab(tab){
@@ -438,36 +511,66 @@
             const author = data.author && (data.author.nickname || data.author.author_id);
             document.getElementById('resultAuthor').textContent = author ? `作者：${data.author.nickname || data.author.author_id}` : '';
 
-            const primary = document.getElementById('primaryMedia');
-            const mainUrl = data.video_url || data.audio_url || data.cover_url;
-            if(mainUrl){
-                primary.href = mainUrl;
-                primary.classList.remove('hidden');
-            } else {
-                primary.classList.add('hidden');
-            }
+            currentVideoUrls = uniqueMediaUrls([data.video_url, ...(data.video_list || [])]);
 
             // 1. 视频渲染
             const videoContainer = document.getElementById('videoContainer');
             const videoPlayer = document.getElementById('videoPlayer');
-            if(data.video_url){
-                videoPlayer.src = data.video_url;
+            const videoPlaceholder = document.getElementById('videoPlaceholder');
+            const videoStrip = document.getElementById('videoStrip');
+            const videoTrack = document.getElementById('videoTrack');
+            const previousVideoBtn = document.getElementById('previousVideoBtn');
+            const nextVideoBtn = document.getElementById('nextVideoBtn');
+            activeVideoIndex = 0;
+            videoTrack.replaceChildren();
+            document.getElementById('videoCount').textContent = currentVideoUrls.length;
+            if(currentVideoUrls.length){
+                currentVideoUrls.forEach((url, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.videoIndex = index;
+                    button.innerHTML = `<span class="block text-[10px] font-medium text-slate-400">${index + 1} / ${currentVideoUrls.length}</span><span class="mt-1 block">视频 ${index + 1}</span>`;
+                    button.onclick = () => {
+                        selectVideo(index, true);
+                        videoContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    };
+                    videoTrack.appendChild(button);
+                });
+                const hasMultipleVideos = currentVideoUrls.length > 1;
+                videoStrip.classList.toggle('hidden', !hasMultipleVideos);
+                previousVideoBtn.classList.toggle('hidden', !hasMultipleVideos);
+                nextVideoBtn.classList.toggle('hidden', !hasMultipleVideos);
+                selectVideo(0);
                 videoContainer.classList.remove('hidden');
             } else {
                 videoPlayer.pause();
-                videoPlayer.src = '';
+                videoPlayer.removeAttribute('src');
+                videoPlayer.load();
+                videoPlayer.classList.remove('hidden');
+                videoPlaceholder.classList.add('hidden');
+                document.getElementById('videoOpenDirectLink').removeAttribute('href');
+                videoStrip.classList.add('hidden');
+                previousVideoBtn.classList.add('hidden');
+                nextVideoBtn.classList.add('hidden');
                 videoContainer.classList.add('hidden');
             }
 
             // 2. 音频渲染
             const audioContainer = document.getElementById('audioContainer');
             const audioPlayer = document.getElementById('audioPlayer');
+            const audioNotice = document.getElementById('audioPreviewNotice');
             if(data.audio_url){
+                audioNotice.classList.add('hidden');
+                audioPlayer.onerror = () => {
+                    audioNotice.textContent = '该音频直链暂时无法在浏览器中预览，可能已过期或被平台的访问策略限制；解析结果仍可在 JSON 中查看或重新获取。';
+                    audioNotice.classList.remove('hidden');
+                };
                 audioPlayer.src = data.audio_url;
                 audioContainer.classList.remove('hidden');
             } else {
                 audioPlayer.pause();
                 audioPlayer.src = '';
+                audioNotice.classList.add('hidden');
                 audioContainer.classList.add('hidden');
             }
 
@@ -483,15 +586,21 @@
                 if(typeof item === 'string') imageList.push({ label: `图片 ${idx + 1}`, url: item });
                 else if(item && item.url) imageList.push({ label: `图片 ${idx + 1}`, url: item.url, livePhoto: item.live_photo_url });
             });
-
-            if(imageList.length > 0){
-                imageCount.textContent = imageList.length;
-                imageList.forEach(item => {
+            const seenImageUrls = new Set();
+            const uniqueImageList = imageList.filter(item => {
+                if(!item.url || seenImageUrls.has(item.url)) return false;
+                seenImageUrls.add(item.url);
+                return true;
+            });
+            if(uniqueImageList.length > 0){
+                imageCount.textContent = uniqueImageList.length;
+                uniqueImageList.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-sm cursor-pointer';
 
                     const img = document.createElement('img');
                     img.src = item.url;
+                    img.referrerPolicy = 'no-referrer';
                     img.loading = 'lazy';
                     img.className = 'w-full h-full object-cover transition duration-300 group-hover:scale-105';
                     img.onclick = () => openLightbox(item.url);
@@ -505,16 +614,23 @@
 
                     const btnZoom = document.createElement('button');
                     btnZoom.className = 'rounded-xl bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-800 shadow hover:bg-white transition flex items-center gap-1';
-                    btnZoom.innerHTML = '<span>🔍</span> 放大';
+                    btnZoom.innerHTML = `${iconMarkup('search', 'w-3.5 h-3.5')}放大`;
                     btnZoom.onclick = (e) => { e.stopPropagation(); openLightbox(item.url); };
 
                     const btnCopy = document.createElement('button');
                     btnCopy.className = 'rounded-xl bg-white/90 p-1.5 text-xs font-bold text-slate-800 shadow hover:bg-white transition';
-                    btnCopy.innerHTML = '📋';
+                    btnCopy.innerHTML = iconMarkup('clipboard', 'w-4 h-4');
                     btnCopy.title = '复制直链';
                     btnCopy.onclick = (e) => { e.stopPropagation(); copyText(item.url, '已复制单图直链'); };
 
                     overlay.append(btnZoom, btnCopy);
+                    img.onerror = () => {
+                        img.remove();
+                        overlay.remove();
+                        badge.remove();
+                        card.className = 'rounded-2xl border border-amber-200 bg-amber-50 aspect-square p-4 flex items-center justify-center text-center text-xs leading-5 text-amber-800';
+                        card.textContent = '图片直链已失效或被平台访问策略限制。请重新解析后再试。';
+                    };
                     card.append(img, badge, overlay);
                     imageGrid.appendChild(card);
                 });
@@ -525,7 +641,7 @@
 
             // 4. 无资源提示
             const emptyNotice = document.getElementById('emptyMediaNotice');
-            if(!data.video_url && !data.audio_url && imageList.length === 0){
+            if(currentVideoUrls.length === 0 && !data.audio_url && uniqueImageList.length === 0){
                 emptyNotice.classList.remove('hidden');
             } else {
                 emptyNotice.classList.add('hidden');

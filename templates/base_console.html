@@ -1,4 +1,7 @@
 <!doctype html>
+{% macro icon(name, class_name='') -%}
+<svg class="app-icon {{ class_name }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#icon-{{ name }}"></use></svg>
+{%- endmacro %}
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
@@ -23,24 +26,24 @@
             <nav class="sidebar-nav">
                 {% if g.user['role'] == 'admin' %}
                 <div class="nav-group-title">系统管理</div>
-                <a href="#overview" class="nav-item active"><i class="nav-icon">📊</i><span>概览</span></a>
-                <a href="#settings" class="nav-item"><i class="nav-icon">⚙️</i><span>系统设置</span></a>
+                <a href="#overview" class="nav-item active"><i class="nav-icon">{{ icon('chart') }}</i><span>概览</span></a>
+                <a href="#settings" class="nav-item"><i class="nav-icon">{{ icon('settings') }}</i><span>系统设置</span></a>
                 
                 <div class="nav-group-title">业务管理</div>
-                <a href="#users" class="nav-item"><i class="nav-icon">👥</i><span>客户账号</span></a>
-                <a href="#keys" class="nav-item"><i class="nav-icon">🔑</i><span>API 密钥</span></a>
-                <a href="#platforms" class="nav-item"><i class="nav-icon">🌐</i><span>解析平台</span></a>
+                <a href="#users" class="nav-item"><i class="nav-icon">{{ icon('users') }}</i><span>客户账号</span></a>
+                <a href="#keys" class="nav-item"><i class="nav-icon">{{ icon('key') }}</i><span>API 密钥</span></a>
+                <a href="#platforms" class="nav-item"><i class="nav-icon">{{ icon('globe') }}</i><span>解析平台</span></a>
                 
                 <div class="nav-group-title">运维监控</div>
-                <a href="#logs" class="nav-item"><i class="nav-icon">📜</i><span>运行日志</span></a>
+                <a href="#logs" class="nav-item"><i class="nav-icon">{{ icon('scroll') }}</i><span>运行日志</span></a>
                 {% else %}
                 <div class="nav-group-title">概览与统计</div>
-                <a href="#overview" class="nav-item active"><i class="nav-icon">📊</i><span>概览</span></a>
-                <a href="#logs" class="nav-item"><i class="nav-icon">📜</i><span>请求日志</span></a>
+                <a href="#overview" class="nav-item active"><i class="nav-icon">{{ icon('chart') }}</i><span>概览</span></a>
+                <a href="#logs" class="nav-item"><i class="nav-icon">{{ icon('scroll') }}</i><span>请求日志</span></a>
                 
                 <div class="nav-group-title">开发者中心</div>
-                <a href="#keys" class="nav-item"><i class="nav-icon">🔑</i><span>API 密钥</span></a>
-                <a href="#docs" class="nav-item"><i class="nav-icon">📖</i><span>开发者文档</span></a>
+                <a href="#keys" class="nav-item"><i class="nav-icon">{{ icon('key') }}</i><span>API 密钥</span></a>
+                <a href="#docs" class="nav-item"><i class="nav-icon">{{ icon('book') }}</i><span>开发者文档</span></a>
                 {% endif %}
             </nav>
         </div>

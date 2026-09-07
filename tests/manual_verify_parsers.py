@@ -3,6 +3,7 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import logging
 from pathlib import Path
 import sys
 
@@ -78,7 +79,10 @@ def main():
     parser.add_argument("--list-missing", action="store_true", help="仅列出缺少链接的平台")
     parser.add_argument("--limit", type=int, default=0, help="限制每个平台运行的最大用例数 (默认全部)")
     parser.add_argument("--workers", type=int, default=20, help="并发线程数 (默认 20，0 表示单线程顺序执行)")
+    parser.add_argument("--summary-only", action="store_true", help="仅输出最终汇总，适合全量回归")
     args = parser.parse_args()
+    if args.summary_only:
+        logging.disable(logging.CRITICAL)
 
     cases = load_cases()
     if args.platform:
@@ -119,14 +123,16 @@ def main():
                 results.append(res)
                 status, platform, pattern, detail, url = res
                 status_tag = f"✅ {status}" if status == "PASSED" else (f"❌ {status}" if status == "FAILED" else f"⚪ {status}")
-                print(f"{status_tag:<10} [{platform:<6}] ({pattern[:25]}): {detail}", flush=True)
+                if not args.summary_only:
+                    print(f"{status_tag:<10} [{platform:<6}] ({pattern[:25]}): {detail}", flush=True)
     else:
         for case in cases:
             res = verify_case(case)
             results.append(res)
             status, platform, pattern, detail, url = res
             status_tag = f"✅ {status}" if status == "PASSED" else (f"❌ {status}" if status == "FAILED" else f"⚪ {status}")
-            print(f"{status_tag:<10} [{platform:<6}] ({pattern[:25]}): {detail}", flush=True)
+            if not args.summary_only:
+                print(f"{status_tag:<10} [{platform:<6}] ({pattern[:25]}): {detail}", flush=True)
 
     summary = {status: sum(1 for result in results if result[0] == status) for status in ("PASSED", "FAILED", "MISSING")}
     print("\n" + "=" * 60, flush=True)
@@ -135,10 +141,14 @@ def main():
     if total > 0:
         pass_rate = (summary['PASSED'] / total) * 100
         print(f"🎯 整体通过率：{pass_rate:.1f}% ({summary['PASSED']}/{total})", flush=True)
+    if args.summary_only:
+        failures = [result for result in results if result[0] != "PASSED"]
+        if failures:
+            print("失败用例：", flush=True)
+            for status, platform, pattern, detail, _url in failures:
+                print(f"- [{platform}] {pattern}: {detail}", flush=True)
     print("=" * 60, flush=True)
 
 
 if __name__ == "__main__":
     main()
-
-
