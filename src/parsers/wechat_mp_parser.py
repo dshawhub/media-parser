@@ -101,10 +101,10 @@ class WechatMpParser(BaseParser):
             if voice_tag and voice_tag.get("voice_encode_fileid"):
                 audio_url = f"https://res.wx.qq.com/voice/getvoice?mediaid={voice_tag.get('voice_encode_fileid')}"
 
-            # 6. 视频提取 (mpvideo / 视频消息 / 嵌入式视频)
+            # 6. 视频提取 (mpvideo / 视频消息 / 正文内嵌多视频)
             video_url = None
             video_list = []
-            video_items = []
+            video_groups = {}
             for block in re.finditer(
                 r"\{[^{}]*?url\s*:\s*['\"`](https?://mpvideo\.qpic\.cn/[^'\"`]+)['\"`][^{}]*?\}",
                 html,
@@ -122,31 +122,59 @@ class WechatMpParser(BaseParser):
                 filesize = int(filesize_m.group(1)) if filesize_m else 0
                 quality = int(quality_m.group(1)) if quality_m else 0
 
-                video_items.append({
+                item = {
                     "url": raw_vurl,
                     "width": width,
                     "height": height,
                     "filesize": filesize,
                     "quality": quality,
-                })
+                }
 
-            if video_items:
-                best_video = max(
-                    video_items,
-                    key=lambda v: (v["quality"], v["width"] * v["height"], v["filesize"]),
-                )
-                video_url = best_video["url"]
-                video_list = [best_video["url"]]
+                # 依据视频唯一标识分组（如 mpvideo.qpic.cn/{file_id}.f10002.mp4 中的 file_id）
+                m_f = re.search(r"mpvideo\.qpic\.cn/([a-zA-Z0-9_-]+)\.f\d+", raw_vurl)
+                if m_f:
+                    group_key = m_f.group(1)
+                else:
+                    m_prefix = re.search(r"mpvideo\.qpic\.cn/([a-zA-Z0-9_-]+)", raw_vurl)
+                    group_key = m_prefix.group(1) if m_prefix else raw_vurl.split("?")[0]
+
+                if group_key not in video_groups:
+                    video_groups[group_key] = []
+                video_groups[group_key].append(item)
+
+            # 单视频文章（如 video_page_info）场景保护
+            if "video_page_info" in html and "video_page_infos" not in html and "videoPageInfos" not in html:
+                all_items = [item for items in video_groups.values() for item in items]
+                if all_items:
+                    best_video = max(
+                        all_items,
+                        key=lambda v: (v["quality"], v["width"] * v["height"], v["filesize"]),
+                    )
+                    video_list = [best_video["url"]]
+            elif video_groups:
+                for items in video_groups.values():
+                    best_video = max(
+                        items,
+                        key=lambda v: (v["quality"], v["width"] * v["height"], v["filesize"]),
+                    )
+                    if best_video["url"] not in video_list:
+                        video_list.append(best_video["url"])
             else:
                 # 备选匹配任意 mpvideo.qpic.cn 链接
                 direct_matches = re.findall(
                     r"https?://mpvideo\.qpic\.cn/[^\s'\"`]+",
                     html,
                 )
-                if direct_matches:
-                    clean_vurl = direct_matches[0].replace(r"\x26amp;", "&").replace("&amp;", "&")
-                    video_url = clean_vurl
-                    video_list = [clean_vurl]
+                seen_keys = set()
+                for dm in direct_matches:
+                    clean_vurl = dm.replace(r"\x26amp;", "&").replace("&amp;", "&")
+                    m_prefix = re.search(r"mpvideo\.qpic\.cn/([a-zA-Z0-9_-]+)", clean_vurl)
+                    key = m_prefix.group(1) if m_prefix else clean_vurl.split("?")[0]
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        video_list.append(clean_vurl)
+
+            video_url = video_list[0] if video_list else None
 
             return {
                 "title": title,
@@ -166,7 +194,7 @@ class WechatMpParser(BaseParser):
         return {}
 
     def get_real_video_url(self):
-        """提取视频直链（如文章内嵌视频源）。"""
+        """提取首个视频直链（如文章内嵌视频源）。"""
         return self.article_data.get("video_url")
 
     def get_title_content(self):
@@ -195,5 +223,5 @@ class WechatMpParser(BaseParser):
         return self.article_data.get("image_list") or []
 
     def get_video_list(self):
-        video_url = self.get_real_video_url()
-        return [video_url] if video_url else []
+        """提取文章内嵌的所有视频直链列表。"""
+        return self.article_data.get("video_list") or []

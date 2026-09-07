@@ -10,13 +10,14 @@
 * **支持媒体类型**：
   * **超高清正文插图图集**：自动升级为无损原始画质 (`/0?`)，过滤内置 emoji 图标
   * **文章封面图** (`cover_url`)
-  * **1080P 超清视频直链** (`video_url` / `video_list`)：支持公众号视频动态与正文内嵌视频
+  * **1080P 超清视频直链 / 多视频列表** (`video_url` / `video_list`)：支持公众号视频动态与正文内嵌多视频（自动按视频 ID 分组并为每个视频提取最高画质流）
   * **内嵌语音播报 / 音频直链** (`audio_url`)
   * **文章标题与发布者信息**：包含文章/视频标题、公众号作者昵称、`gh_` 标识及官方头像
 * **支持域名**：
   * `mp.weixin.qq.com`（公众号文章详情页、视频动态页与分享短链）
 * **常见链接形态**：
   * **文章长链/短链**：`https://mp.weixin.qq.com/s/LqZUts7aWOz7D7W_jIEXsA`
+  * **多视频文章长链**：`https://mp.weixin.qq.com/s/aNmLs3qJVhFGcgtGxAVlig`
   * **视频消息动态**：`https://mp.weixin.qq.com/s/GQiMB7CC6r7wil54I0TMwQ`
   * **历史参数长链**：`https://mp.weixin.qq.com/s?__biz=MzA5...&mid=...&idx=1&sn=...`
 * **Cookie 依赖**：🟢 免配置（开箱即用）。
@@ -43,10 +44,12 @@
   full_res_url = re.sub(r'/(?:640|300|0)\?', '/0?', img_src)
   ```
 
-### 4. 视频流提取与清晰度择优算法
-公众号视频动态或正文内嵌视频在页面 JS 对象 `mp_video_trans_info` 中包含了多档转码格式（如 1080P 超清、720P 高清、480P 流畅等）：
-1. 扫描页面中的转码规格列表，提取所有 `mpvideo.qpic.cn` 视频流；
-2. 依据 `video_quality_level`、分辨率（`width * height`）以及 `filesize` 进行多维度打分，**自动择优选择最高分辨率（如 1080×1920 超清）的 MP4 视频直链**。
+### 4. 多视频流提取与清晰度择优算法
+公众号视频动态或正文内嵌的多个视频在页面 JS 变量 `video_page_info` 或 `videoPageInfos` / `video_page_infos` 的 `mp_video_trans_info` 中包含了多档转码格式（如 1080P 超清、720P 高清、480P 流畅等）：
+1. 扫描页面中所有的转码规格列表，提取所有 `mpvideo.qpic.cn` 视频流；
+2. **多视频按唯一文件指纹分组**：基于视频文件的唯一标识（`file_id`）将不同清晰度的分发流归类到各自的内嵌视频；
+3. **独立打分择优**：对每个视频的各个清晰度依据 `video_quality_level`、分辨率（`width * height`）以及 `filesize` 进行多维度打分，**自动为每个视频挑选最高分辨率（如 1080×1920 超清）的 MP4 直链**；
+4. **全量聚合返回**：将文章中包含的全部视频直链按正文顺序聚合至 `video_list`，同时 `video_url` 指向首个视频。
 
 ### 5. 语音/音频资源提取
 * 从正文 `<mpvoice voice_encode_fileid="..." name="...">` 标签提取语音文件 ID；

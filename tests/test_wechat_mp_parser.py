@@ -102,6 +102,81 @@ class WechatMpParserTest(unittest.TestCase):
         self.assertEqual(parser.get_real_video_url(), "http://mpvideo.qpic.cn/video_hd.mp4?k=2&p=1")
         self.assertEqual(parser.get_video_list(), ["http://mpvideo.qpic.cn/video_hd.mp4?k=2&p=1"])
 
+    def test_maps_multiple_videos_response(self):
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta property="og:title" content="多视频文章测试" />
+        </head>
+        <body>
+            <script>
+                var videoPageInfos = [
+                    {
+                        video_id: 'wxv_video_1',
+                        mp_video_trans_info: [
+                            {
+                                format_id: 10004,
+                                width: 480,
+                                height: 854,
+                                filesize: 1000,
+                                video_quality_level: 1,
+                                url: 'http://mpvideo.qpic.cn/0bc3vid1aaaa.f10004.mp4?k=1'
+                            },
+                            {
+                                format_id: 10002,
+                                width: 1080,
+                                height: 1920,
+                                filesize: 5000,
+                                video_quality_level: 3,
+                                url: 'http://mpvideo.qpic.cn/0bc3vid1aaaa.f10002.mp4?k=2'
+                            }
+                        ]
+                    },
+                    {
+                        video_id: 'wxv_video_2',
+                        mp_video_trans_info: [
+                            {
+                                format_id: 10004,
+                                width: 640,
+                                height: 360,
+                                filesize: 2000,
+                                video_quality_level: 1,
+                                url: 'http://mpvideo.qpic.cn/0bc3vid2bbbb.f10004.mp4?k=3'
+                            },
+                            {
+                                format_id: 10002,
+                                width: 1280,
+                                height: 720,
+                                filesize: 6000,
+                                video_quality_level: 3,
+                                url: 'http://mpvideo.qpic.cn/0bc3vid2bbbb.f10002.mp4?k=4'
+                            }
+                        ]
+                    }
+                ];
+            </script>
+        </body>
+        </html>
+        """
+        response = Mock()
+        response.status_code = 200
+        response.raise_for_status.return_value = None
+        response.text = html_content
+
+        with patch("requests.Session.get", return_value=response):
+            parser = WechatMpParser(self.URL)
+
+        self.assertEqual(parser.get_title_content(), "多视频文章测试")
+        self.assertEqual(parser.get_real_video_url(), "http://mpvideo.qpic.cn/0bc3vid1aaaa.f10002.mp4?k=2")
+        self.assertEqual(
+            parser.get_video_list(),
+            [
+                "http://mpvideo.qpic.cn/0bc3vid1aaaa.f10002.mp4?k=2",
+                "http://mpvideo.qpic.cn/0bc3vid2bbbb.f10002.mp4?k=4",
+            ],
+        )
+
     def test_handles_request_failure_gracefully(self):
         response = Mock()
         response.raise_for_status.side_effect = Exception("HTTP 404")
@@ -112,8 +187,10 @@ class WechatMpParserTest(unittest.TestCase):
         self.assertEqual(parser.get_title_content(), "微信公众号文章")
         self.assertEqual(parser.get_image_list(), [])
         self.assertIsNone(parser.get_real_video_url())
+        self.assertEqual(parser.get_video_list(), [])
 
 
 if __name__ == "__main__":
     unittest.main()
+
 

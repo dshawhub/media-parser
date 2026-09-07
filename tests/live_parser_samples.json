@@ -4204,6 +4204,23 @@
       "note": "2026-08 真实反馈验证: 《销量低的新能源，敢不敢买？》公众号视频"
     },
     {
+      "platform": "微信公众号",
+      "url": "https://mp.weixin.qq.com/s/aNmLs3qJVhFGcgtGxAVlig",
+      "pattern": "mp.weixin.qq.com 正文多视频嵌入 (s/aNmLs3qJVhFGcgtGxAVlig)",
+      "media_types": [
+        "video",
+        "images"
+      ],
+      "expected_fields": [
+        "video",
+        "images",
+        "cover",
+        "title",
+        "author"
+      ],
+      "note": "2026-09 真实反馈验证: 《这，才是下一个5年的工作操作系统》多视频内嵌文章"
+    },
+    {
       "platform": "红果短剧",
       "url": "https://novelquickapp.com/s/YlMu9l4vgE4/",
       "pattern": "novelquickapp.com 短剧推广页",
