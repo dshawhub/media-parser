@@ -13,10 +13,11 @@ logger = get_logger(__name__)
 
 @register_parser("哔哩哔哩")
 class BilibiliParser(BaseParser):
-    """通过 B 站官方 API 获取可直接播放的单文件 MP4 地址。"""
+    """通过 B 站官方 API 获取可直接播放的单文件 MP4 地址及动态内容。"""
 
     API_VIEW = "https://api.bilibili.com/x/web-interface/view"
     API_PLAYURL = "https://api.bilibili.com/x/player/playurl"
+    API_DYNAMIC_DETAIL = "https://api.bilibili.com/x/polymer/web-dynamic/v1/detail"
 
     def __init__(self, real_url):
         super().__init__(real_url)
@@ -25,7 +26,15 @@ class BilibiliParser(BaseParser):
             "Referer": "https://www.bilibili.com/",
         }
         self.bvid = self._extract_bvid(real_url)
-        self.video_info = self._fetch_video_info()
+        self.dynamic_id = None if self.bvid else self._extract_dynamic_id(real_url)
+        self.dynamic_info = {}
+
+        if not self.bvid and self.dynamic_id:
+            self.dynamic_info = self._fetch_dynamic_info(self.dynamic_id)
+            if bvid := self._extract_bvid_from_dynamic(self.dynamic_info):
+                self.bvid = bvid
+
+        self.video_info = self._fetch_video_info() if self.bvid else {}
         self._play_info_by_cid = {}
 
     @staticmethod
@@ -34,7 +43,57 @@ class BilibiliParser(BaseParser):
         match = re.search(r"(BV[a-zA-Z0-9]+)", url or "")
         if match:
             return match.group(1)
-        logger.error("无法从 URL 中提取 BV 号: %s", url)
+        return None
+
+    @staticmethod
+    def _extract_dynamic_id(url):
+        """从 URL 中提取动态/Opus ID。"""
+        match = re.search(r"(?:t\.bilibili\.com/|opus/|dynamic_id=)(\d{17,20})", url or "")
+        if match:
+            return match.group(1)
+        logger.error("无法从 URL 中提取 BV 号或动态 ID: %s", url)
+        return None
+
+    def _fetch_dynamic_info(self, dynamic_id):
+        """通过动态 API 获取动态详情。"""
+        if not dynamic_id:
+            return {}
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": "https://t.bilibili.com/",
+            }
+            response = self.session.get(
+                self.API_DYNAMIC_DETAIL,
+                params={"id": dynamic_id},
+                headers=headers,
+                timeout=10,
+            )
+            response.raise_for_status()
+            result = response.json()
+        except (requests.RequestException, ValueError) as error:
+            logger.error("B站动态 API 请求失败: %s", error)
+            return {}
+
+        if result.get("code") == 0:
+            return result.get("data", {}).get("item") or {}
+        logger.error(
+            "B站动态 API 返回错误: code=%s, message=%s",
+            result.get("code"),
+            result.get("message"),
+        )
+        return {}
+
+    @staticmethod
+    def _extract_bvid_from_dynamic(dynamic_info):
+        """从动态详情数据中提取关联的视频 BV 号。"""
+        major = (
+            dynamic_info.get("modules", {})
+            .get("module_dynamic", {})
+            .get("major", {})
+        )
+        if major.get("type") == "MAJOR_TYPE_ARCHIVE":
+            return major.get("archive", {}).get("bvid")
         return None
 
     def _fetch_video_info(self):
@@ -114,22 +173,75 @@ class BilibiliParser(BaseParser):
     def _get_pages(self):
         return self.video_info.get("pages") or []
 
+    def _get_dynamic_pics(self):
+        if not self.dynamic_info:
+            return []
+        major = (
+            self.dynamic_info.get("modules", {})
+            .get("module_dynamic", {})
+            .get("major", {})
+        )
+        pics = []
+        if opus := major.get("opus"):
+            for pic in opus.get("pics") or []:
+                if url := pic.get("url"):
+                    pics.append(url)
+        elif draw := major.get("draw"):
+            for item in draw.get("items") or []:
+                if url := item.get("src"):
+                    pics.append(url)
+        return pics
+
     def get_title_content(self):
-        return self.video_info.get("title", "")
+        if self.video_info:
+            return self.video_info.get("title", "")
+        if self.dynamic_info:
+            modules = self.dynamic_info.get("modules", {})
+            dynamic_mod = modules.get("module_dynamic", {})
+            major = dynamic_mod.get("major", {})
+            if opus := major.get("opus"):
+                if title := opus.get("title"):
+                    return title
+                if summary := opus.get("summary", {}).get("text"):
+                    return summary
+            if desc := dynamic_mod.get("desc", {}).get("text"):
+                return desc
+        return ""
 
     def get_cover_photo_url(self):
-        return self.video_info.get("pic", "")
+        if self.video_info:
+            return self.video_info.get("pic", "")
+        if self.dynamic_info:
+            pics = self._get_dynamic_pics()
+            if pics:
+                return pics[0]
+        return ""
 
     def get_author_info(self):
-        owner = self.video_info.get("owner") or {}
-        avatar = owner.get("face", "")
-        if avatar.startswith("//"):
-            avatar = "https:" + avatar
-        return {
-            "nickname": owner.get("name", ""),
-            "author_id": str(owner.get("mid", "")),
-            "avatar": avatar,
-        }
+        if self.video_info:
+            owner = self.video_info.get("owner") or {}
+            avatar = owner.get("face", "")
+            if avatar.startswith("//"):
+                avatar = "https:" + avatar
+            return {
+                "nickname": owner.get("name", ""),
+                "author_id": str(owner.get("mid", "")),
+                "avatar": avatar,
+            }
+        if self.dynamic_info:
+            author = (
+                self.dynamic_info.get("modules", {})
+                .get("module_author", {})
+            )
+            avatar = author.get("face", "")
+            if avatar.startswith("//"):
+                avatar = "https:" + avatar
+            return {
+                "nickname": author.get("name", ""),
+                "author_id": str(author.get("mid", "")),
+                "avatar": avatar,
+            }
+        return {"nickname": "", "author_id": "", "avatar": ""}
 
     def get_real_video_url(self):
         """返回首个分 P 的 B 站 CDN MP4 直链；该文件已包含音轨。"""
@@ -139,15 +251,21 @@ class BilibiliParser(BaseParser):
         return self._get_durl(self._fetch_play_info(pages[0].get("cid")))
 
     def get_video_list(self):
-        """返回多分 P 视频的 CDN MP4 直链，单分 P 保持旧响应结构。"""
-        pages = self._get_pages()
-        if len(pages) <= 1:
-            return []
-        return [
-            url
-            for page in pages
-            if (url := self._get_durl(self._fetch_play_info(page.get("cid"))))
-        ]
+        """返回多分 P 视频的 CDN MP4 直链，单分 P 保持旧响应结构；动态相册则返回原图数组。"""
+        if self.video_info:
+            pages = self._get_pages()
+            if len(pages) <= 1:
+                return []
+            return [
+                url
+                for page in pages
+                if (url := self._get_durl(self._fetch_play_info(page.get("cid"))))
+            ]
+        if self.dynamic_info:
+            pics = self._get_dynamic_pics()
+            if len(pics) > 1:
+                return pics
+        return []
 
     def get_audio_url(self):
         """durl 单文件已内嵌音轨，无需再下载 DASH 音频或调用 FFmpeg。"""

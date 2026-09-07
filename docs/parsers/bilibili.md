@@ -14,6 +14,7 @@
 * **常见链接形态**：
   * 短链接：`https://b23.tv/xxxx`
   * 网页端长链：`https://www.bilibili.com/video/BV1asTR6FEWu`
+  * 动态/Opus 链接：`https://t.bilibili.com/1245189054385881096` 或 `https://www.bilibili.com/opus/1245189054385881096`
 * **Cookie 依赖**：无需登录 Cookie（可获取 720P/1080P HTML5 基础流）。
 
 ---
