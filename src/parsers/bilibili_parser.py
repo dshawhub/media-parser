@@ -251,7 +251,7 @@ class BilibiliParser(BaseParser):
         return self._get_durl(self._fetch_play_info(pages[0].get("cid")))
 
     def get_video_list(self):
-        """返回多分 P 视频的 CDN MP4 直链，单分 P 保持旧响应结构；动态相册则返回原图数组。"""
+        """返回多分 P 视频的 CDN MP4 直链，单分 P 保持旧响应结构。"""
         if self.video_info:
             pages = self._get_pages()
             if len(pages) <= 1:
@@ -261,11 +261,11 @@ class BilibiliParser(BaseParser):
                 for page in pages
                 if (url := self._get_durl(self._fetch_play_info(page.get("cid"))))
             ]
-        if self.dynamic_info:
-            pics = self._get_dynamic_pics()
-            if len(pics) > 1:
-                return pics
         return []
+
+    def get_image_list(self):
+        """返回动态或 Opus 帖中的原始图片列表。"""
+        return self._get_dynamic_pics()
 
     def get_audio_url(self):
         """durl 单文件已内嵌音轨，无需再下载 DASH 音频或调用 FFmpeg。"""

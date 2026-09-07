@@ -124,9 +124,32 @@ class BilibiliParserTest(unittest.TestCase):
                 {"nickname": "图文UP主", "author_id": "789", "avatar": "https://example.com/author_avatar.jpg"},
             )
             self.assertEqual(
-                parser.get_video_list(),
+                parser.get_image_list(),
                 ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
             )
+            self.assertEqual(parser.get_video_list(), [])
+
+    def test_parses_single_dynamic_photo_as_image(self):
+        dynamic_item = {
+            "modules": {
+                "module_dynamic": {
+                    "major": {
+                        "type": "MAJOR_TYPE_DRAW",
+                        "draw": {
+                            "items": [
+                                {"src": "https://example.com/single.jpg"},
+                            ],
+                        },
+                    }
+                }
+            }
+        }
+        with patch.object(BilibiliParser, "_fetch_dynamic_info", return_value=dynamic_item):
+            parser = BilibiliParser("https://t.bilibili.com/1245189054385881096")
+
+            self.assertEqual(parser.get_image_list(), ["https://example.com/single.jpg"])
+            self.assertEqual(parser.get_video_list(), [])
+            self.assertIsNone(parser.get_real_video_url())
 
 
 if __name__ == "__main__":

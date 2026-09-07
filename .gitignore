@@ -33,7 +33,7 @@ gunicorn.log
 # 进程文件
 *.pid
 
-# Apache/Nginx 配置（根据情况选择）
+# Apache/Nginx 配置
 .htaccess
 
 # macOS操作系统
@@ -42,19 +42,19 @@ gunicorn.log
 .LSOverride
 *~
 
-# 日志 & 临时文件
+# 日志 & 临时文件 & 持久化数据
 *.log
-logs/
+logs/*
+!logs/.gitkeep
+data/*
+!data/.gitkeep
 instance/
-data/
 .pytest_cache/
 .coverage
 coverage.xml
 htmlcov/
 
-# 视频文件
+# 媒体文件
 *.mp4
 *.avi
-
-# 音频文件
 *.mp3
