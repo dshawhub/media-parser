@@ -10,9 +10,9 @@ from src.parsers.douyin_parser import DouyinParser
 logger = get_logger(__name__)
 
 
-@register_parser("西瓜视频")
-class XiguaParser(DouyinParser):
-    """西瓜视频分享解析器，支持移动端 SSR + ByteDance VOD 及抖音链路兜底。"""
+@register_parser("今日头条")
+class ToutiaoParser(DouyinParser):
+    """今日头条分享解析器，支持移动端 SSR + ByteDance VOD 调度及抖音链路兜底。"""
 
     MOBILE_HEADERS = {
         "User-Agent": (
@@ -23,15 +23,16 @@ class XiguaParser(DouyinParser):
         "Accept-Language": "zh-CN,zh-Hans;q=0.9",
     }
 
-    def _fetch_xigua_mobile_ssr(self, item_id: str):
-        """通过西瓜移动端 SSR 渲染数据及 VOD 接口提取视频详情。"""
+    def _fetch_toutiao_mobile_ssr(self, item_id: str):
+        """通过今日头条移动端 SSR 渲染数据及 VOD 接口提取视频详情。"""
         if not item_id:
             return None
 
         candidate_urls = [
-            f"https://m.ixigua.com/video/{item_id}/",
-            f"https://m.ixigua.com/group/{item_id}/",
-            f"https://www.ixigua.com/{item_id}",
+            f"https://m.toutiao.com/video/{item_id}/",
+            f"https://m.toutiao.com/i{item_id}/",
+            f"https://m.toutiao.com/group/{item_id}/",
+            f"https://m.toutiao.com/item/{item_id}/",
         ]
 
         for target_url in candidate_urls:
@@ -41,13 +42,13 @@ class XiguaParser(DouyinParser):
                     continue
 
                 soup = BeautifulSoup(resp.text, "lxml")
-                script = soup.find("script", id="RENDER_DATA") or soup.find("script", id="_SSR_DATA")
+                script = soup.find("script", id="RENDER_DATA")
                 if not script or not script.string:
                     continue
 
                 text = urllib.parse.unquote(script.string.strip())
                 raw_json = json.loads(text)
-                article_info = raw_json.get("articleInfo") or raw_json.get("videoInfo")
+                article_info = raw_json.get("articleInfo")
                 if not article_info or not isinstance(article_info, dict):
                     continue
 
@@ -63,24 +64,24 @@ class XiguaParser(DouyinParser):
                             if vod_resp.status_code == 200:
                                 vod_data = vod_resp.json().get("Result", {}).get("Data", {})
                     except Exception as e:
-                        logger.warning(f"Failed to fetch Xigua VOD data: {e}")
+                        logger.warning(f"Failed to fetch Toutiao VOD data: {e}")
 
-                logger.info(f"Successfully extracted Xigua mobile SSR data for {item_id}")
+                logger.info(f"Successfully extracted Toutiao mobile SSR data for {item_id}")
                 return {
-                    "xigua_article_info": article_info,
+                    "toutiao_article_info": article_info,
                     "vod_data": vod_data,
                 }
             except Exception as e:
-                logger.debug(f"Failed to fetch Xigua mobile SSR from {target_url}: {e}")
+                logger.debug(f"Failed to fetch Toutiao mobile SSR from {target_url}: {e}")
                 continue
 
         return None
 
     def fetch_html_data(self):
-        # 1. 优先尝试西瓜移动端 SSR + ByteDance VOD 链路
-        xigua_data = self._fetch_xigua_mobile_ssr(self.aweme_id)
-        if xigua_data:
-            return xigua_data
+        # 1. 优先尝试今日头条移动端 SSR + ByteDance VOD 链路
+        toutiao_data = self._fetch_toutiao_mobile_ssr(self.aweme_id)
+        if toutiao_data:
+            return toutiao_data
 
         # 2. 兜底回退到抖音核心链路（移动 Feed、Web a_bogus API、抖音 SSR）
         return super().fetch_html_data()
@@ -97,7 +98,7 @@ class XiguaParser(DouyinParser):
                     best = valid_streams[0]
                     return best.get("MainPlayUrl") or best.get("BackupPlayUrl")
 
-            article_info = self.data.get("xigua_article_info") or {}
+            article_info = self.data.get("toutiao_article_info") or {}
             play_url_list = article_info.get("playUrlList") or []
             if play_url_list:
                 return play_url_list[0].get("mainUrl") or play_url_list[0].get("backupUrl")
@@ -105,15 +106,15 @@ class XiguaParser(DouyinParser):
         return super().get_real_video_url()
 
     def get_title_content(self):
-        if self.data and isinstance(self.data, dict) and "xigua_article_info" in self.data:
-            article_info = self.data["xigua_article_info"]
+        if self.data and isinstance(self.data, dict) and "toutiao_article_info" in self.data:
+            article_info = self.data["toutiao_article_info"]
             return article_info.get("title") or article_info.get("content") or ""
 
         return super().get_title_content()
 
     def get_cover_photo_url(self):
-        if self.data and isinstance(self.data, dict) and "xigua_article_info" in self.data:
-            article_info = self.data["xigua_article_info"]
+        if self.data and isinstance(self.data, dict) and "toutiao_article_info" in self.data:
+            article_info = self.data["toutiao_article_info"]
             return (
                 article_info.get("posterUrl")
                 or (self.data.get("vod_data") or {}).get("CoverUrl")
@@ -122,11 +123,11 @@ class XiguaParser(DouyinParser):
         return super().get_cover_photo_url()
 
     def get_author_info(self):
-        if self.data and isinstance(self.data, dict) and "xigua_article_info" in self.data:
-            article_info = self.data["xigua_article_info"]
-            user = article_info.get("mediaUser") or article_info.get("user") or {}
-            name = user.get("screenName") or user.get("name") or article_info.get("userName") or article_info.get("source")
-            avatar = user.get("avatarUrl") or user.get("avatar")
+        if self.data and isinstance(self.data, dict) and "toutiao_article_info" in self.data:
+            article_info = self.data["toutiao_article_info"]
+            user = article_info.get("mediaUser") or {}
+            name = user.get("screenName") or article_info.get("userName") or article_info.get("source")
+            avatar = user.get("avatarUrl")
             if name or avatar:
                 return {"author": name, "avatar": avatar}
             return None

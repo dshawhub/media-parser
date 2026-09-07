@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "50 平台多形态全景自动化回归测试用例库 (涵盖短链/长链/图集/单视频/AI生成等)",
-  "total_cases": 307,
+  "total_cases": 308,
   "cases": [
     {
       "platform": "网易云音乐",
@@ -219,6 +219,21 @@
       ],
       "note": "2026-08 已验证: 今日头条短链/视频解析",
       "pattern": "基础标准样例"
+    },
+    {
+      "platform": "今日头条",
+      "url": "https://www.toutiao.com/video/7680960670263493172/",
+      "media_types": [
+        "video"
+      ],
+      "expected_fields": [
+        "video",
+        "cover",
+        "title",
+        "author"
+      ],
+      "note": "2026-09 已验证: 今日头条原生中长视频/资讯视频 (ByteDance VOD 签名直链)",
+      "pattern": "头条中长视频/VOD直链"
     },
     {
       "platform": "AcFun",

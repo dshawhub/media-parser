@@ -12,7 +12,7 @@
 * 🔍 **[通用逆向方法论 (Reverse Engineering Guide)](reverse-guide.md)**：掌握 SSR 数据提取、H5 接口伪装、JS 签名沙箱及抓包 SOP。
 * 🧪 **[测试与回归验证 (Testing Guide)](testing.md)**：学习 Pytest 单元测试、Mock 构造与真实样本（Live Samples）测试。
 * 📖 **平台实战指南 (Parser Guides)**：
-  * **短视频与轻社区**：[抖音](parsers/douyin.md) ｜ [快手](parsers/kuaishou.md) ｜ [今日头条](parsers/xigua.md) ｜ [皮皮虾](parsers/pipixia.md) ｜ [皮皮搞笑](parsers/pipigaoxiao.md) ｜ [最右](parsers/zuiyou.md) ｜ [美拍](parsers/meipai.md) ｜ [微视](parsers/weishi.md) ｜ [绿洲](parsers/lvzhou.md) ｜ [番茄小说/红果短剧/红果漫剧](parsers/fanqie.md)
+  * **短视频与轻社区**：[抖音](parsers/douyin.md) ｜ [快手](parsers/kuaishou.md) ｜ [今日头条](parsers/toutiao.md) ｜ [西瓜视频](parsers/xigua.md) ｜ [皮皮虾](parsers/pipixia.md) ｜ [皮皮搞笑](parsers/pipigaoxiao.md) ｜ [最右](parsers/zuiyou.md) ｜ [美拍](parsers/meipai.md) ｜ [微视](parsers/weishi.md) ｜ [绿洲](parsers/lvzhou.md) ｜ [番茄小说/红果短剧/红果漫剧](parsers/fanqie.md)
   * **图文与综合社区**：[小红书](parsers/xiaohongshu.md) ｜ [微信公众号](parsers/wechat-mp.md) ｜ [微博](parsers/weibo.md) ｜ [知乎](parsers/zhihu.md) ｜ [闲鱼](parsers/xianyu.md) ｜ [Soul](parsers/soul.md) ｜ [得物](parsers/dewu.md) ｜ [网易LOFTER](parsers/lofter.md)
   * **长视频与电视/融媒**：[哔哩哔哩](parsers/bilibili.md) ｜ [AcFun](parsers/acfun.md) ｜ [央视](parsers/cctv.md) ｜ [央视频](parsers/yangshipin.md) ｜ [新片场](parsers/xinpianchang.md) ｜ [好看视频](parsers/haokan.md) ｜ [西瓜视频](parsers/xigua.md) ｜ [剪映](parsers/jianying.md) ｜ [快影](parsers/kwaiying.md)
   * **AI 生成与大模型**：[豆包 AI](parsers/doubao.md) ｜ [星绘 AI](parsers/butterflyai.md) ｜ [腾讯元宝](parsers/yuanbao.md) ｜ [即梦 AI](parsers/jimeng.md) ｜ [可灵 AI](parsers/kling.md) ｜ [海螺 AI](parsers/hailuo.md) ｜ [通义千问](parsers/qianwen.md) ｜ [夸克 AI](parsers/quark-ai.md) ｜ [小云雀 AI](parsers/xiaoyunque.md) ｜ [松果时刻](parsers/pinecone-moment.md)
@@ -52,8 +52,8 @@
 | 21 | **虎牙** | 视频 / 录播 | ✅ 支持 | 🟢 免配置 | 移动端短链解析 | [查看指南](parsers/huya.md) |
 | 22 | **微信视频号** | 视频 / 图集 / 原声音频 | ✅ 支持 | 🔐 需 YUANBAO_COOKIE (媒体流/图集) | 视频号短链 + 腾讯元宝双轨解析 | [查看指南](parsers/wechat-channels.md) |
 | 23 | **腾讯视频/频道** | 视频 | ✅ 支持 | 🟢 免配置 | 企鹅频道分享解析 | [查看指南](parsers/tencent-channel.md) |
-| 24 | **西瓜视频** | 视频 | ✅ 支持 | 🟢 免配置 | 字节系引擎继承解析 | [查看指南](parsers/xigua.md) |
-| 25 | **今日头条** | 视频 / 微头条视频 | ✅ 支持 | 🟢 免配置 | 字节系引擎继承解析 | [查看指南](parsers/xigua.md) |
+| 24 | **西瓜视频** | 视频 | ✅ 支持 | 🟢 免配置 | 移动端 SSR + 字节 VOD + 抖音链路兜底 | [查看指南](parsers/xigua.md) |
+| 25 | **今日头条** | 视频 / 微头条视频 | ✅ 支持 | 🟢 免配置 | 移动端 SSR + 字节 VOD + 抖音链路兜底 | [查看指南](parsers/toutiao.md) |
 | 26 | **新片场** | 高清视频 | ✅ 支持 | 🟢 免配置 | Next.js SSR 播放页提取 | [查看指南](parsers/xinpianchang.md) |
 | 27 | **好看视频** | 百度短视频 | ✅ 支持 | 🟢 免配置 | 百度视频落地页提取 | [查看指南](parsers/haokan.md) |
 | 28 | **美拍** | 视频 | ✅ 支持 | 🟢 免配置 | 网页 MP4 流还原 | [查看指南](parsers/meipai.md) |

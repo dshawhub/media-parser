@@ -44,10 +44,8 @@ gunicorn.log
 
 # 日志 & 临时文件 & 持久化数据
 *.log
-logs/*
-!logs/.gitkeep
-data/*
-!data/.gitkeep
+logs/
+data/
 instance/
 .pytest_cache/
 .coverage
