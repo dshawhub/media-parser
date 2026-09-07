@@ -16,18 +16,22 @@ logger = get_logger(__name__)
 def _load_or_create_secret(data_dir):
     """为零配置部署生成可持久化的随机会话密钥。"""
     secret_path = os.path.join(data_dir, ".secret_key")
-    descriptor = os.open(secret_path, os.O_RDWR | os.O_CREAT, 0o600)
-    with os.fdopen(descriptor, "r+", encoding="utf-8") as secret_file:
-        fcntl.flock(secret_file.fileno(), fcntl.LOCK_EX)
-        saved = secret_file.read().strip()
-        if saved:
-            return saved
-        generated = secrets.token_hex(32)
-        secret_file.seek(0)
-        secret_file.write(generated)
-        secret_file.flush()
-        os.fsync(secret_file.fileno())
-        return generated
+    try:
+        descriptor = os.open(secret_path, os.O_RDWR | os.O_CREAT, 0o600)
+        with os.fdopen(descriptor, "r+", encoding="utf-8") as secret_file:
+            fcntl.flock(secret_file.fileno(), fcntl.LOCK_EX)
+            saved = secret_file.read().strip()
+            if saved:
+                return saved
+            generated = secrets.token_hex(32)
+            secret_file.seek(0)
+            secret_file.write(generated)
+            secret_file.flush()
+            os.fsync(secret_file.fileno())
+            return generated
+    except (PermissionError, OSError) as e:
+        logger.warning(f"无法读写密钥文件 {secret_path}，使用临时随机会话密钥: {e}")
+        return secrets.token_hex(32)
 
 
 def create_app(config=None):
