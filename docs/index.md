@@ -69,7 +69,7 @@
 | 38 | **番茄小说** | 短剧视频 | ✅ 支持 | 🟢 免配置 | H5 推广页 HTML 提取 | [查看指南](parsers/fanqie.md) |
 | 39 | **红果短剧** | 短剧视频 | ✅ 支持 | 🟢 免配置 | H5 推广页 HTML 提取 | [查看指南](parsers/fanqie.md) |
 | 40 | **红果漫剧** | 漫剧/短剧视频 | ✅ 支持 | 🟢 免配置 | H5 推广页 HTML 提取 | [查看指南](parsers/fanqie.md) |
-| 41 | **QQ音乐** | MV / 分享视频 / 多档 MP4 | ✅ 支持 | 🟢 免配置 | SSR 元数据 + MusicU 播放接口 | [查看指南](parsers/qqmusic.md) |
+| 41 | **QQ音乐** | 歌曲音频 / LRC 歌词 / MV / 多档 MP4 | ✅ 支持 | 🟢 免配置 | PC Web 协议 + MusicU 播放与歌词接口 | [查看指南](parsers/qqmusic.md) |
 | 42 | **网易云音乐** | MV / Mlog / 歌曲 / 动态图集与 LivePhoto | ✅ 支持 | 🟢 公开内容免配置 | SSR / Event 数据 + 公开播放接口 | [查看指南](parsers/netease-music.md) |
 | 43 | **酷狗音乐** | MV / 免费歌曲 / 多档 MP4 | ✅ 支持 | 🟢 公开内容免配置 | H5 公开接口签名 + 分享页数据 | [查看指南](parsers/kugou-music.md) |
 | 44 | **配音秀** | 配音作品视频 (MP4) | ✅ 支持 | 🟢 公开内容免配置 | 作品页初始化数据提取 | [查看指南](parsers/peiyinxiu.md) |

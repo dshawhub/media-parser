@@ -260,7 +260,7 @@ class UrlParser:
         elif platform == "QQ音乐":
             query_params = parse_qs(parsed_url.query)
             preserved_params = []
-            for key in ("vid", "songmid", "songMid", "__"):
+            for key in ("vid", "songid", "songId", "songmid", "songMid", "id", "__"):
                 value = query_params.get(key, [None])[0]
                 if value is not None:
                     preserved_params.append((key, value))
@@ -451,6 +451,14 @@ class UrlParser:
             params_vid = query_params.get('vid', [None])[0]
             if params_vid:
                 return params_vid
+            params_songid = (
+                query_params.get('songid', [None])[0]
+                or query_params.get('songId', [None])[0]
+                or query_params.get('songmid', [None])[0]
+                or query_params.get('songMid', [None])[0]
+            )
+            if params_songid:
+                return params_songid
             params_hash = query_params.get('hash', [None])[0]
             if params_hash:
                 return params_hash

@@ -689,15 +689,7 @@
                         <h2 style="margin:0">运行日志</h2>
                         <span class="badge" style="font-weight:600">{{ log_storage['count'] }} 条记录</span>
                     </div>
-                    <span class="muted" style="display:block;margin-top:6px;font-size:13px">
-                        链接中的密钥、令牌和签名参数会自动脱敏；
-                        {% if log_storage['count'] > 0 and log_storage['oldest_created_at'] %}
-                        记录跨度（北京时间）：{{ format_log_time(log_storage['oldest_created_at']) }} ~ {{
-                        format_log_time(log_storage['newest_created_at']) }}
-                        {% else %}
-                        日志默认永久保存，支持导出与清理维护
-                        {% endif %}
-                    </span>
+                    <span class="muted" style="display:block;margin-top:6px;font-size:13px">链接中的密钥、令牌和签名参数会自动脱敏</span>
                 </div>
                 <div class="row" style="gap:8px">
                     <a class="btn btn-secondary" href="{{ url_for('admin.export_logs') }}">导出 CSV</a>
