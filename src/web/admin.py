@@ -109,7 +109,7 @@ def export_logs():
     def generate():
         writer = csv.writer(_CsvRowBuffer())
         yield "\ufeff"
-        yield writer.writerow(("时间（北京时间）", "客户", "Key Prefix", "平台", "请求路径", "脱敏 URL", "状态码", "耗时（毫秒）", "错误码"))
+        yield writer.writerow(("时间", "客户", "Key Prefix", "平台", "请求路径", "脱敏 URL", "状态码", "耗时（毫秒）", "错误码"))
         cursor = get_db().execute(
             "SELECT l.*, u.username, k.key_prefix FROM request_logs l "
             "LEFT JOIN users u ON u.id=l.user_id LEFT JOIN api_keys k ON k.id=l.api_key_id "

@@ -1,4 +1,56 @@
-{% extends 'base_console.html' %}{% block title %}初始化管理员{% endblock %}{% block body %}
-<main class="auth-wrap"><div class="auth-card"><div class="card"><h1 class="title">初始化管理员</h1><p class="subtitle">这是首次部署的一次性步骤。请设置一个强密码。</p>
-{% for category,message in get_flashed_messages(with_categories=true) %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
-<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="field"><label>管理员用户名</label><input name="username" minlength="3" maxlength="40" required></div><div class="field"><label>管理员密码（至少 8 位）</label><input name="password" type="password" minlength="8" required></div><div class="field"><label>确认管理员密码</label><input name="confirm_password" type="password" minlength="8" required></div><button class="btn btn-primary btn-block">创建管理员</button></form></div></div></main>{% endblock %}
+{% extends 'base_console.html' %}
+{% block title %}初始化系统管理员{% endblock %}
+{% block body %}
+<main class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <a href="{{ url_for('web.index') }}" title="返回首页">
+                <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Media Parser Logo">
+            </a>
+            <h2>Media Parser 控制台</h2>
+            <p class="muted" style="font-size:13px;margin:4px 0 0">首次部署：创建超级管理员初始凭据</p>
+        </div>
+
+        <div class="card" style="box-shadow:var(--shadow-lg)">
+            <div class="row" style="gap:8px;align-items:center;margin-bottom:8px">
+                <span class="badge" style="background:#eef2ff;color:#4f46e5;border-color:#c7d2fe">首次初始化</span>
+            </div>
+            <h1 class="title" style="font-size:20px;margin-bottom:4px">初始化管理员</h1>
+            <p class="subtitle" style="margin-bottom:20px">该步骤仅在初次部署时执行一次，请务必设置强密码并妥善保管。</p>
+
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="flash {{ category }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <label>管理员用户名 <span class="muted">(3 ~ 40 位)</span></label>
+                    <input name="username" minlength="3" maxlength="40" placeholder="例如：admin" required autofocus>
+                </div>
+                <div class="field">
+                    <label>管理员密码 <span class="muted">(至少 8 位)</span></label>
+                    <input name="password" type="password" minlength="8" placeholder="请输入高强度管理员密码" required>
+                </div>
+                <div class="field">
+                    <label>确认管理员密码</label>
+                    <input name="confirm_password" type="password" minlength="8" placeholder="请再次输入管理员密码" required>
+                </div>
+                <div style="margin-top:24px">
+                    <button type="submit" class="btn btn-primary btn-block" style="height:40px;font-size:14px">立即创建超级管理员</button>
+                </div>
+            </form>
+        </div>
+
+        <div style="text-align:center;margin-top:20px">
+            <a href="{{ url_for('web.index') }}" class="muted" style="font-size:12.5px;display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                返回首页在线体验
+            </a>
+        </div>
+    </div>
+</main>
+{% endblock %}

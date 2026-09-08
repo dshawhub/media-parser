@@ -269,9 +269,99 @@ def get_daily_trend(user_id=None, days=7):
     for idx, item in enumerate(daily_stats):
         item["show_label"] = (idx % step == 0) or (idx == num_points - 1)
 
-    y_max = max_val if max_val > 0 else 10
-    if y_max < 5:
-        y_max = 5
+    def _calc_nice_ticks(mv, top_m=20, h=160):
+        if mv <= 0:
+            ym = 10
+            raw_ticks = [10, 8, 6, 4, 2, 0]
+        elif mv <= 3:
+            ym = 3
+            raw_ticks = [3, 2, 1, 0]
+        elif mv <= 5:
+            ym = 5
+            raw_ticks = [5, 4, 3, 2, 1, 0]
+        elif mv <= 8:
+            ym = 8
+            raw_ticks = [8, 6, 4, 2, 0]
+        elif mv <= 12:
+            ym = 12
+            raw_ticks = [12, 9, 6, 3, 0]
+        elif mv <= 15:
+            ym = 15
+            raw_ticks = [15, 12, 9, 6, 3, 0]
+        elif mv <= 20:
+            ym = 20
+            raw_ticks = [20, 15, 10, 5, 0]
+        elif mv <= 30:
+            ym = 30
+            raw_ticks = [30, 24, 18, 12, 6, 0]
+        elif mv <= 50:
+            ym = math.ceil(mv / 10) * 10
+            step = 10 if ym <= 30 else (ym // 5)
+            raw_ticks = list(range(ym, -1, -step))
+            if raw_ticks[-1] != 0:
+                raw_ticks.append(0)
+        elif mv <= 100:
+            ym = math.ceil(mv / 10) * 10
+            step = max(10, ym // 5)
+            raw_ticks = list(range(ym, -1, -step))
+            if raw_ticks[-1] != 0:
+                raw_ticks.append(0)
+        else:
+            mag = 10 ** math.floor(math.log10(mv))
+            norm = mv / mag
+            if norm <= 1.5:
+                step = int(0.25 * mag) if mag >= 10 else 1
+                ym = int(1.5 * mag)
+            elif norm <= 2.0:
+                step = int(0.4 * mag) if mag >= 10 else 1
+                ym = int(2.0 * mag)
+            elif norm <= 5.0:
+                step = int(0.5 * mag) if mag >= 10 else 1
+                ym = int(math.ceil(norm) * mag)
+            else:
+                step = int(1.0 * mag) if mag >= 10 else 1
+                ym = int(math.ceil(norm / 2) * 2 * mag)
+            raw_ticks = list(range(ym, -1, -step))
+            if raw_ticks[-1] != 0:
+                raw_ticks.append(0)
+
+        ticks = []
+        for v in raw_ticks:
+            y_pos = round(top_m + h * (1 - v / ym), 1)
+            ticks.append({
+                "val": f"{v:,}",
+                "raw_val": v,
+                "y": y_pos,
+            })
+        return ym, ticks
+
+    def _points_to_bezier_path(coords, min_y=20, max_y=180, tension=0.2):
+        if not coords:
+            return ""
+        if len(coords) == 1:
+            return f"M {coords[0][0]:.1f} {coords[0][1]:.1f}"
+        if len(coords) == 2:
+            return f"M {coords[0][0]:.1f} {coords[0][1]:.1f} L {coords[1][0]:.1f} {coords[1][1]:.1f}"
+
+        path = [f"M {coords[0][0]:.1f} {coords[0][1]:.1f}"]
+        n = len(coords)
+        for i in range(n - 1):
+            p0 = coords[max(0, i - 1)]
+            p1 = coords[i]
+            p2 = coords[i + 1]
+            p3 = coords[min(n - 1, i + 2)]
+
+            if p1[1] == max_y and p2[1] == max_y:
+                path.append(f"L {p2[0]:.1f} {p2[1]:.1f}")
+                continue
+
+            cp1x = p1[0] + (p2[0] - p0[0]) * tension
+            cp1y = max(min_y, min(max_y, p1[1] + (p2[1] - p0[1]) * tension))
+            cp2x = p2[0] - (p3[0] - p1[0]) * tension
+            cp2y = max(min_y, min(max_y, p2[1] - (p3[1] - p1[1]) * tension))
+
+            path.append(f"C {cp1x:.1f} {cp1y:.1f}, {cp2x:.1f} {cp2y:.1f}, {p2[0]:.1f} {p2[1]:.1f}")
+        return " ".join(path)
 
     width = 620
     height = 160
@@ -279,6 +369,10 @@ def get_daily_trend(user_id=None, days=7):
     top_margin = 20
     bottom_y = top_margin + height
 
+    y_max, y_ticks = _calc_nice_ticks(max_val, top_margin, height)
+
+    coords_calls = []
+    coords_successes = []
     points_calls = []
     points_successes = []
 
@@ -289,14 +383,22 @@ def get_daily_trend(user_id=None, days=7):
         item["x"] = x
         item["y_calls"] = y_c
         item["y_successes"] = y_s
+        coords_calls.append((x, y_c))
+        coords_successes.append((x, y_s))
         points_calls.append(f"{x},{y_c}")
         points_successes.append(f"{x},{y_s}")
 
-    calls_line = " ".join(points_calls)
-    successes_line = " ".join(points_successes)
+    calls_path = _points_to_bezier_path(coords_calls, min_y=top_margin, max_y=bottom_y)
+    successes_path = _points_to_bezier_path(coords_successes, min_y=top_margin, max_y=bottom_y)
 
     first_x = daily_stats[0]["x"]
     last_x = daily_stats[-1]["x"]
+
+    calls_area_path = f"{calls_path} L {last_x:.1f} {bottom_y:.1f} L {first_x:.1f} {bottom_y:.1f} Z"
+    successes_area_path = f"{successes_path} L {last_x:.1f} {bottom_y:.1f} L {first_x:.1f} {bottom_y:.1f} Z"
+
+    calls_line = " ".join(points_calls)
+    successes_line = " ".join(points_successes)
     calls_area = f"{first_x},{bottom_y} {calls_line} {last_x},{bottom_y}"
     successes_area = f"{first_x},{bottom_y} {successes_line} {last_x},{bottom_y}"
 
@@ -304,15 +406,15 @@ def get_daily_trend(user_id=None, days=7):
         "trend": daily_stats,
         "max_val": max_val,
         "y_max": y_max,
+        "calls_path": calls_path,
+        "successes_path": successes_path,
+        "calls_area_path": calls_area_path,
+        "successes_area_path": successes_area_path,
         "calls_line": calls_line,
         "successes_line": successes_line,
         "calls_area": calls_area,
         "successes_area": successes_area,
-        "y_ticks": [
-            {"val": y_max, "y": top_margin},
-            {"val": round(y_max / 2), "y": top_margin + height / 2},
-            {"val": 0, "y": bottom_y},
-        ],
+        "y_ticks": y_ticks,
     }
 
 
@@ -343,13 +445,17 @@ def get_platform_distribution(user_id=None, days=7):
     PALETTE = [
         "#4f46e5", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6",
         "#06b6d4", "#ef4444", "#3b82f6", "#14b8a6", "#f97316",
-        "#64748b", "#84cc16", "#d946ef", "#6366f1"
+        "#6366f1", "#84cc16", "#d946ef", "#0284c7", "#e11d48",
+        "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777",
+        "#0891b2", "#ea580c", "#475569", "#65a30d", "#9333ea",
+        "#0d9488", "#c026d3", "#4338ca", "#16a34a", "#ca8a04",
+        "#e11d48", "#2563eb", "#7c2d12", "#4b5563", "#047857", "#b45309"
     ]
 
     items = []
     if total_calls > 0:
         cx, cy = 100, 100
-        r_out, r_in = 80, 50
+        r_out, r_in = 86, 62
         current_angle = 0.0  # radians
 
         for idx, row in enumerate(rows):
@@ -390,6 +496,7 @@ def get_platform_distribution(user_id=None, days=7):
             items.append({
                 "platform": name,
                 "calls": calls,
+                "calls_formatted": f"{calls:,}",
                 "successes": successes,
                 "percentage": percentage,
                 "color": color,
@@ -398,6 +505,8 @@ def get_platform_distribution(user_id=None, days=7):
 
     return {
         "total_calls": total_calls,
+        "total_calls_formatted": f"{total_calls:,}",
+        "platform_count": len(rows),
         "items": items,
     }
 

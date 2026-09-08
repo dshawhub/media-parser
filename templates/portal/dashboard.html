@@ -19,14 +19,48 @@
                 else '服务有效' }}</span>
         </div>
         <div class="stats">
-            <div class="card stat"><span class="muted">24 小时调用</span><strong>{{ stats['calls'] or 0 }}</strong></div>
-            <div class="card stat"><span class="muted">成功调用</span><strong>{{ stats['successes'] or 0 }}</strong></div>
-            <div class="card stat"><span class="muted">剩余解析积分</span><strong>{{ '不限制' if g.user['credits'] == -1 else
-                    (g.user['credits'] or 0) }}</strong></div>
-            <div class="card stat"><span class="muted">账号 QPS 限制</span><strong>{{ g.user['qps_limit'] }}</strong></div>
-            <div class="card stat"><span class="muted">账号到期时间</span><strong
-                    style="font-size:18px;margin-top:12px;color:{{ '#ef4444' if user_is_expired(g.user) else '#0f172a' }}">{{
-                    format_user_expiry(g.user) }}</strong></div>
+            <div class="card stat">
+                <div class="stat-head">
+                    <span class="stat-label">24 小时调用</span>
+                    <span class="stat-icon">{{ icon('chart') }}</span>
+                </div>
+                <strong>{{ stats['calls'] or 0 }}</strong>
+                <span class="stat-foot">近 24 小时接口请求</span>
+            </div>
+            <div class="card stat">
+                <div class="stat-head">
+                    <span class="stat-label">成功调用</span>
+                    <span class="stat-icon">{{ icon('check') }}</span>
+                </div>
+                <strong>{{ stats['successes'] or 0 }}</strong>
+                <span class="stat-foot">有效完成媒体直链解析</span>
+            </div>
+            <div class="card stat">
+                <div class="stat-head">
+                    <span class="stat-label">剩余解析积分</span>
+                    <span class="stat-icon">{{ icon('tag') }}</span>
+                </div>
+                <strong>{{ '不限制' if g.user['credits'] == -1 else (g.user['credits'] or 0) }}</strong>
+                <span class="stat-foot">接口解析额度</span>
+            </div>
+            <div class="card stat">
+                <div class="stat-head">
+                    <span class="stat-label">账号 QPS 上限</span>
+                    <span class="stat-icon">{{ icon('shield') }}</span>
+                </div>
+                <strong>{{ g.user['qps_limit'] }}</strong>
+                <span class="stat-foot">每秒并发请求阈值</span>
+            </div>
+            <div class="card stat">
+                <div class="stat-head">
+                    <span class="stat-label">账号到期时间</span>
+                    <span class="stat-icon">{{ icon('scroll') }}</span>
+                </div>
+                <strong style="font-size:18px;color:{{ '#dc2626' if user_is_expired(g.user) else '#0f172a' }}">
+                    {{ format_user_expiry(g.user) }}
+                </strong>
+                <span class="stat-foot">服务授权截止期</span>
+            </div>
         </div>
 
         <!-- 动态周期筛选栏 -->
@@ -78,50 +112,46 @@
 
                     <!-- Y 轴网格辅助线与刻度 -->
                     {% for tick in chart_data['y_ticks'] %}
-                    <line x1="50" y1="{{ tick['y'] }}" x2="670" y2="{{ tick['y'] }}" stroke="#f1f5f9" stroke-width="1"
-                        stroke-dasharray="4 4" />
-                    <text x="42" y="{{ tick['y'] + 4 }}" text-anchor="end" font-size="11" fill="#94a3b8">{{ tick['val']
-                        }}</text>
+                    <line x1="45" y1="{{ tick['y'] }}" x2="675" y2="{{ tick['y'] }}" stroke="#f1f5f9" stroke-width="0.8"
+                        stroke-dasharray="3 3" />
+                    <text x="38" y="{{ tick['y'] + 3.5 }}" text-anchor="end" font-size="9.5" fill="#94a3b8">{{ tick['val'] }}</text>
                     {% endfor %}
 
                     <!-- X 轴基线 -->
-                    <line x1="50" y1="180" x2="670" y2="180" stroke="#e2e8f0" stroke-width="1" />
+                    <line x1="45" y1="180" x2="675" y2="180" stroke="#e2e8f0" stroke-width="0.9" />
 
                     <!-- 鼠标悬浮对齐线 -->
-                    <line class="chart-guide-line" x1="0" y1="20" x2="0" y2="180" stroke="#818cf8" stroke-width="1.2"
+                    <line class="chart-guide-line" x1="0" y1="20" x2="0" y2="180" stroke="#818cf8" stroke-width="1"
                         stroke-dasharray="3 3" style="display:none;pointer-events:none" />
 
-                    <!-- 渐变填充面 -->
-                    <polygon points="{{ chart_data['calls_area'] }}" fill="url(#callsGradPortal)" />
-                    <polygon points="{{ chart_data['successes_area'] }}" fill="url(#succGradPortal)" />
+                    <!-- 平滑渐变填充面 -->
+                    <path d="{{ chart_data['calls_area_path'] }}" fill="url(#callsGradPortal)" />
+                    <path d="{{ chart_data['successes_area_path'] }}" fill="url(#succGradPortal)" />
 
-                    <!-- 趋势平滑折线 -->
-                    <polyline points="{{ chart_data['calls_line'] }}" fill="none" stroke="#4f46e5" stroke-width="1.8"
+                    <!-- 趋势平滑贝塞尔曲线 (纤细大厂风格) -->
+                    <path d="{{ chart_data['calls_path'] }}" fill="none" stroke="#4f46e5" stroke-width="1.5"
                         stroke-linecap="round" stroke-linejoin="round" />
-                    <polyline points="{{ chart_data['successes_line'] }}" fill="none" stroke="#10b981"
-                        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="{{ chart_data['successes_path'] }}" fill="none" stroke="#10b981" stroke-width="1.3"
+                        stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- 动态悬停聚焦光晕圆点 (初始隐藏) -->
+                    <circle class="chart-hover-dot calls-dot" cx="0" cy="0" r="3.5" fill="#4f46e5" stroke="#ffffff"
+                        stroke-width="1.8" style="display:none;pointer-events:none" />
+                    <circle class="chart-hover-dot succ-dot" cx="0" cy="0" r="3" fill="#10b981" stroke="#ffffff"
+                        stroke-width="1.6" style="display:none;pointer-events:none" />
 
                     <!-- X 轴刻度与交互节点 -->
                     {% for item in chart_data['trend'] %}
                     {% if item['show_label'] %}
-                    <text x="{{ item['x'] }}" y="200" text-anchor="middle" font-size="10" fill="#94a3b8">{{
-                        item['short_date'] }}</text>
+                    <text x="{{ item['x'] }}" y="198" text-anchor="middle" font-size="9.5" font-weight="450" fill="#94a3b8">{{ item['short_date'] }}</text>
                     {% endif %}
 
                     <!-- 透明列触控透明矩形 -->
-                    <rect class="chart-col-trigger" x="{{ item['x'] - 20 }}" y="20" width="40" height="160"
+                    <rect class="chart-col-trigger" x="{{ item['x'] - 20 }}" y="15" width="40" height="170"
                         fill="transparent" style="cursor:pointer" data-date="{{ item['date'] }}"
                         data-calls="{{ item['calls'] }}" data-successes="{{ item['successes'] }}"
                         data-failures="{{ item['failures'] }}" data-cx="{{ item['x'] }}"
                         data-cy-calls="{{ item['y_calls'] }}" data-cy-succ="{{ item['y_successes'] }}" />
-
-                    <!-- 总调用量节点 -->
-                    <circle cx="{{ item['x'] }}" cy="{{ item['y_calls'] }}" r="3.5" fill="#ffffff" stroke="#4f46e5"
-                        stroke-width="1.8" class="point-circle" style="pointer-events:none" />
-
-                    <!-- 成功调用量节点 -->
-                    <circle cx="{{ item['x'] }}" cy="{{ item['y_successes'] }}" r="2.5" fill="#ffffff" stroke="#10b981"
-                        stroke-width="1.8" class="point-circle" style="pointer-events:none" />
                     {% endfor %}
                 </svg>
             </div>
@@ -150,30 +180,29 @@
                     <div>当前时间范围内暂无调用记录</div>
                 </div>
                 {% else %}
-                <div class="pie-wrapper">
+                <div class="pie-wrapper" id="portal-platform-dist">
                     <div class="pie-svg-box">
                         <svg viewBox="0 0 200 200" style="width:100%;height:100%">
                             {% for item in pie_data['items'] %}
                             <path d="{{ item['path_d'] }}" fill="{{ item['color'] }}" class="pie-slice"
-                                data-platform="{{ item['platform'] }}" data-calls="{{ item['calls'] }}"
+                                data-platform="{{ item['platform'] }}" data-calls="{{ item['calls_formatted'] }}"
                                 data-percent="{{ item['percentage'] }}%">
-                                <title>{{ item['platform'] }}: {{ item['calls'] }} 次 ({{ item['percentage'] }}%)</title>
+                                <title>{{ item['platform'] }}: {{ item['calls_formatted'] }} 次 ({{ item['percentage'] }}%)</title>
                             </path>
                             {% endfor %}
                         </svg>
                         <div class="pie-center-text">
-                            <div class="pie-center-val">{{ pie_data['total_calls'] }}</div>
-                            <div class="pie-center-lbl">总解析量</div>
+                            <div class="pie-center-lbl" id="portal-pie-lbl">总解析量</div>
+                            <div class="pie-center-val" id="portal-pie-val">{{ pie_data['total_calls_formatted'] or pie_data['total_calls'] }} 次</div>
                         </div>
                     </div>
 
-                    <!-- 下方平铺胶囊图例 -->
+                    <!-- 下方自适应平铺胶囊图例网格 (支持50+平台) -->
                     <div class="pie-pill-grid">
                         {% for item in pie_data['items'] %}
-                        <div class="pie-pill-item">
+                        <div class="pie-pill-item" data-platform="{{ item['platform'] }}" data-calls="{{ item['calls_formatted'] }}" data-percent="{{ item['percentage'] }}%" title="{{ item['platform'] }}: {{ item['calls_formatted'] }} 次 ({{ item['percentage'] }}%)">
                             <span class="pie-pill-dot" style="background:{{ item['color'] }}"></span>
                             <span class="pie-pill-name">{{ item['platform'] }}</span>
-                            <span class="pie-pill-val">{{ item['percentage'] }}%</span>
                         </div>
                         {% endfor %}
                     </div>
@@ -206,8 +235,11 @@
                     {% for item in top_keys %}
                     <div class="ranking-item">
                         <div class="ranking-head">
-                            <span class="ranking-name">{{ item['name'] }} <span class="muted font-mono">({{
-                                    item['key_prefix'] }}...)</span></span>
+                            <span class="ranking-name">
+                                <span class="ranking-badge">{{ loop.index }}</span>
+                                {{ item['name'] }} <span class="muted font-mono" style="font-size:11px">({{
+                                    item['key_prefix'] }}...)</span>
+                            </span>
                             <span class="ranking-val">{{ item['calls'] }} 次</span>
                         </div>
                         <div class="ranking-bar-bg">
@@ -471,7 +503,7 @@ Authorization: Bearer mp_xxxxxxxxx</pre>
                 <table style="width:100%;min-width:920px">
                     <thead>
                         <tr>
-                            <th style="width:28%">时间（北京时间）</th>
+                            <th style="width:28%">时间</th>
                             <th>平台</th>
                             <th>脱敏 URL</th>
                             <th>状态</th>

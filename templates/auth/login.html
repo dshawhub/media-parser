@@ -1,5 +1,57 @@
-{% extends 'base_console.html' %}{% block title %}登录{% endblock %}{% block body %}
-<main class="auth-wrap"><div class="auth-card"><div class="card"><h1 class="title">登录控制台</h1><p class="subtitle">管理你的 API Key 和调用记录。</p>
-{% for category,message in get_flashed_messages(with_categories=true) %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
-<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="field"><label>用户名</label><input name="username" autocomplete="username" required></div><div class="field"><label>密码</label><input name="password" type="password" autocomplete="current-password" required></div><button class="btn btn-primary btn-block">登录</button></form>
-<p class="muted" style="text-align:center;font-size:13px;margin:18px 0 0">没有账号？<a style="color:#4f46e5" href="{{ url_for('auth.register') }}">立即注册</a>{% if not has_admin %} · <a style="color:#4f46e5" href="{{ url_for('auth.setup') }}">初始化管理员</a>{% endif %}</p></div></div></main>{% endblock %}
+{% extends 'base_console.html' %}
+{% block title %}登录控制台{% endblock %}
+{% block body %}
+<main class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <a href="{{ url_for('web.index') }}" title="返回首页">
+                <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Media Parser Logo">
+            </a>
+            <h2>Media Parser 控制台</h2>
+            <p class="muted" style="font-size:13px;margin:4px 0 0">统一多平台媒体解析与开放 API 服务</p>
+        </div>
+
+        <div class="card" style="box-shadow:var(--shadow-lg)">
+            <h1 class="title" style="font-size:20px;margin-bottom:4px">登录账号</h1>
+            <p class="subtitle" style="margin-bottom:20px">输入账号凭证以管理您的 API 密钥与调取监控。</p>
+
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="flash {{ category }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <label>用户名</label>
+                    <input name="username" placeholder="请输入用户名" autocomplete="username" required autofocus>
+                </div>
+                <div class="field">
+                    <label>密码</label>
+                    <input name="password" type="password" placeholder="请输入账户密码" autocomplete="current-password" required>
+                </div>
+                <div style="margin-top:24px">
+                    <button type="submit" class="btn btn-primary btn-block" style="height:40px;font-size:14px">立即登录</button>
+                </div>
+            </form>
+
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line-subtle);text-align:center;font-size:13px" class="muted">
+                还没有账号？<a style="color:var(--brand);font-weight:600" href="{{ url_for('auth.register') }}">注册账号</a>
+                {% if not has_admin %}
+                <span style="margin:0 6px">·</span>
+                <a style="color:var(--brand);font-weight:600" href="{{ url_for('auth.setup') }}">初始化超级管理员</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="text-align:center;margin-top:20px">
+            <a href="{{ url_for('web.index') }}" class="muted" style="font-size:12.5px;display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                返回首页在线体验
+            </a>
+        </div>
+    </div>
+</main>
+{% endblock %}

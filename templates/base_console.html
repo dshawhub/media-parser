@@ -89,7 +89,22 @@
         </div>
 
         <header class="main-topbar">
-            <h1 class="page-title" id="active-page-title">{% block page_title %}{% endblock %}</h1>
+            <div class="topbar-left">
+                <div class="topbar-breadcrumb">
+                    <a href="{{ url_for('web.index') }}">Media Parser</a>
+                    <span class="topbar-separator">/</span>
+                    <span>{{ '管理后台' if g.user['role']=='admin' else '控制台' }}</span>
+                    <span class="topbar-separator">/</span>
+                </div>
+                <h1 class="page-title" id="active-page-title">{% block page_title %}{% endblock %}</h1>
+            </div>
+            <div class="topbar-right">
+                <span class="status-pill online"><span class="status-dot pulse"></span>API 正常</span>
+                <a href="{{ url_for('web.index') }}" target="_blank" class="topbar-link" title="前往首页在线体验">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <span>在线体验</span>
+                </a>
+            </div>
         </header>
         {% block console_content %}{% endblock %}
     </div>
@@ -191,6 +206,8 @@ function initChartInteractions() {
     document.querySelectorAll('.chart-container').forEach(container => {
         const tooltip = container.querySelector('.chart-tooltip');
         const guideLine = container.querySelector('.chart-guide-line');
+        const callsDot = container.querySelector('.calls-dot');
+        const succDot = container.querySelector('.succ-dot');
         const svg = container.querySelector('svg');
         if (!tooltip || !svg) return;
 
@@ -202,11 +219,25 @@ function initChartInteractions() {
             const successes = el.dataset.successes;
             const failures = el.dataset.failures;
             const cx = parseFloat(el.dataset.cx);
+            const cyCalls = parseFloat(el.dataset.cyCalls);
+            const cySucc = parseFloat(el.dataset.cySucc);
 
             if (guideLine) {
                 guideLine.setAttribute('x1', cx);
                 guideLine.setAttribute('x2', cx);
                 guideLine.style.display = 'block';
+            }
+
+            if (callsDot && !isNaN(cyCalls)) {
+                callsDot.setAttribute('cx', cx);
+                callsDot.setAttribute('cy', cyCalls);
+                callsDot.style.display = 'block';
+            }
+
+            if (succDot && !isNaN(cySucc)) {
+                succDot.setAttribute('cx', cx);
+                succDot.setAttribute('cy', cySucc);
+                succDot.style.display = 'block';
             }
 
             const failCount = parseInt(failures) || 0;
@@ -242,12 +273,14 @@ function initChartInteractions() {
             }
 
             tooltip.style.left = left + 'px';
-            tooltip.style.top = '12px';
+            tooltip.style.top = '10px';
         }
 
         function hideTooltip() {
             if (tooltip) tooltip.classList.remove('active');
             if (guideLine) guideLine.style.display = 'none';
+            if (callsDot) callsDot.style.display = 'none';
+            if (succDot) succDot.style.display = 'none';
         }
 
         triggers.forEach(trig => {
@@ -481,10 +514,67 @@ function closeChangePasswordModal() {
     setTimeout(() => { m.style.display = 'none'; }, 180);
 }
 
+function initDonutInteractions() {
+    document.querySelectorAll('.pie-wrapper').forEach(wrapper => {
+        const centerVal = wrapper.querySelector('.pie-center-val');
+        const centerLbl = wrapper.querySelector('.pie-center-lbl');
+        if (!centerVal || !centerLbl) return;
+
+        const defaultVal = centerVal.textContent;
+        const defaultLbl = centerLbl.textContent;
+
+        const slices = wrapper.querySelectorAll('.pie-slice');
+        const pills = wrapper.querySelectorAll('.pie-pill-item');
+
+        function activate(platform, calls, percent) {
+            centerLbl.textContent = `${platform} (${percent})`;
+            centerLbl.style.fontWeight = '600';
+            centerLbl.style.color = 'var(--brand)';
+            centerVal.textContent = `${calls} 次`;
+            centerVal.style.fontSize = calls.length > 7 ? '17px' : '20px';
+
+            slices.forEach(s => {
+                if (s.dataset.platform === platform) s.classList.add('active');
+                else s.classList.remove('active');
+            });
+            pills.forEach(p => {
+                if (p.dataset.platform === platform) p.classList.add('active');
+                else p.classList.remove('active');
+            });
+        }
+
+        function reset() {
+            centerLbl.textContent = defaultLbl;
+            centerLbl.style.fontWeight = '';
+            centerLbl.style.color = '';
+            centerVal.textContent = defaultVal;
+            centerVal.style.fontSize = '';
+
+            slices.forEach(s => s.classList.remove('active'));
+            pills.forEach(p => p.classList.remove('active'));
+        }
+
+        slices.forEach(slice => {
+            slice.addEventListener('mouseenter', () => {
+                activate(slice.dataset.platform, slice.dataset.calls, slice.dataset.percent);
+            });
+            slice.addEventListener('mouseleave', reset);
+        });
+
+        pills.forEach(pill => {
+            pill.addEventListener('mouseenter', () => {
+                activate(pill.dataset.platform, pill.dataset.calls, pill.dataset.percent);
+            });
+            pill.addEventListener('mouseleave', reset);
+        });
+    });
+}
+
 window.addEventListener('hashchange', switchConsoleTab);
 window.addEventListener('DOMContentLoaded', () => {
     switchConsoleTab();
     initChartInteractions();
+    initDonutInteractions();
     initToasts();
     initConfirmInterceptions();
     const cpm = document.getElementById('change-password-modal-backdrop');
